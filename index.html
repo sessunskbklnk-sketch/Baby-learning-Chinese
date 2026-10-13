@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>宝宝学汉字 · Baby Learning Chinese</title>
+<meta name="description" content="给 3–8 岁孩子的汉字识字小游戏合集：汉字迷宫、骑车闯关、小青蛙过河、狐狸指南针。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>字</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap">
+<style>
+  :root{
+    --bg:#fdf8ef;--card:#ffffff;--ink:#1d2a3a;--ink-soft:#5a6878;--line:#eadfcd;--accent:#e5483b;
+    --f-display:"ZCOOL KuaiLe","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+    --f-ui:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --f-emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-ui);-webkit-font-smoothing:antialiased}
+  main{max-width:960px;margin:0 auto;padding:clamp(28px,6vh,64px) 16px 48px}
+  header{text-align:center;margin-bottom:36px}
+  h1{font:400 clamp(44px,11vw,72px)/1.05 var(--f-display);margin:0;letter-spacing:.06em}
+  h1 small{display:block;font:600 clamp(15px,3.6vw,18px)/1.4 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin-top:10px}
+  .lede{max-width:34em;margin:16px auto 0;color:var(--ink-soft)}
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+  .game{display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);
+    border-radius:22px;padding:20px;box-shadow:0 6px 0 var(--line);transition:transform .2s cubic-bezier(.3,1.5,.5,1)}
+  .game:hover{transform:translateY(-4px)}
+  .game:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .ico{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font:38px/1 var(--f-emoji);background:var(--tint)}
+  .game h2{margin:0;font:400 28px/1.15 var(--f-display)}
+  .game h2 span{display:block;font:600 13px/1.4 var(--f-ui);letter-spacing:.08em;color:var(--ink-soft);margin-top:4px}
+  .game p{margin:0;font-size:14.5px;color:var(--ink-soft)}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+  .tags span{font-size:12px;font-weight:700;background:var(--tint);border-radius:999px;padding:3px 10px}
+  footer{margin-top:40px;text-align:center;font-size:13px;color:var(--ink-soft)}
+  footer a{color:inherit}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>宝宝学汉字<small>Baby Learning Chinese</small></h1>
+    <p class="lede">给 3–8 岁孩子的识字小游戏。听一听、看一看、读一读，在玩里认识汉字。<br>Playful Chinese character games for young learners.</p>
+  </header>
+
+  <div class="grid">
+    <a class="game" href="games/frog-crossing/" style="--tint:#dff3ea">
+      <div class="ico">🐸</div>
+      <h2>小青蛙过河<span>Frog Crossing</span></h2>
+      <p>跳上写对字的荷叶，送小青蛙回家。题型随熟练度从看图听音升到读字选图。</p>
+      <div class="tags"><span>3–6 岁</span><span>触屏</span><span>自适应</span></div>
+    </a>
+    <a class="game" href="games/bike-ride/" style="--tint:#e3eefc">
+      <div class="ico">🚲</div>
+      <h2>骑车闯关<span>Bike Ride</span></h2>
+      <p>每个路口都有路牌，骑进写对字的那条路，栏杆才会抬起来。</p>
+      <div class="tags"><span>3–6 岁</span><span>触屏 / 键盘</span><span>自适应</span></div>
+    </a>
+    <a class="game" href="games/hanzi-maze/" style="--tint:#fff1d6">
+      <div class="ico">🧩</div>
+      <h2>汉字迷宫<span>Hanzi Maze</span></h2>
+      <p>在 3D 彩色迷宫里找到会发光的汉字石板，集齐后大门打开，最后来个小测验。</p>
+      <div class="tags"><span>5–8 岁</span><span>WebGL</span><span>键盘 + 鼠标</span></div>
+    </a>
+    <a class="game" href="games/fox-compass/" style="--tint:#f8e0f1">
+      <div class="ico">🦊</div>
+      <h2>狐狸指南针<span>Kettukompassi</span></h2>
+      <p>跟着小狐狸学东南西北，中文和芬兰语双语，含三个小游戏。</p>
+      <div class="tags"><span>5–8 岁</span><span>中文 + Suomi</span><span>方位</span></div>
+    </a>
+  </div>
+
+  <footer>无需安装 · 不收集数据，进度只保存在本机浏览器 · <a href="https://github.com/sessunskbklnk-sketch/Baby-learning-Chinese">GitHub</a></footer>
+</main>
+</body>
+</html>
