@@ -26,21 +26,17 @@ android {
         versionName System.getenv('VERSION_NAME') ?: '1.0.0'
     }
 
+    // CI 里配置了签名密钥就用它；否则用 debug 签名（AGP 会自动生成），保证总能产出可安装的 APK
+    def releaseKeystore = System.getenv('ANDROID_KEYSTORE_FILE')
+    def hasReleaseKey = releaseKeystore && file(releaseKeystore).exists()
+
     signingConfigs {
-        release {
-            // CI 里配置了签名密钥就用它；否则退回 debug 签名，保证总能产出可安装的 APK
-            def ks = System.getenv('ANDROID_KEYSTORE_FILE')
-            if (ks && file(ks).exists()) {
-                storeFile file(ks)
+        if (hasReleaseKey) {
+            release {
+                storeFile file(releaseKeystore)
                 storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
                 keyAlias System.getenv('ANDROID_KEY_ALIAS')
                 keyPassword System.getenv('ANDROID_KEY_PASSWORD')
-            } else {
-                def dbg = signingConfigs.debug
-                storeFile dbg.storeFile
-                storePassword dbg.storePassword
-                keyAlias dbg.keyAlias
-                keyPassword dbg.keyPassword
             }
         }
     }
@@ -48,7 +44,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
+            signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
         }
     }
 
