@@ -918,6 +918,7 @@ function pickVoice() {
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 function say(text) {
+  if (window.AndroidTTS) { try { if (AndroidTTS.speakLang(text, 'zh', 0.75, true)) return true; } catch (e) {} }
   if (!('speechSynthesis' in window) || !zhVoice) return false;   // 没中文语音就不读，免得读错
   try {
     speechSynthesis.cancel();

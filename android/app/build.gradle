@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+}
+
+def webRoot = rootProject.projectDir.parentFile
+def webOut = layout.buildDirectory.dir('generated/web-assets')
+
+// 把仓库根目录的网页（大厅 + games/）打包进 APK 的 assets/www
+def copyWebAssets = tasks.register('copyWebAssets', Sync) {
+    from(webRoot) {
+        include 'index.html'
+        include 'games/**'
+    }
+    into webOut.map { it.dir('www') }
+}
+
+android {
+    namespace 'com.babylearning.chinese'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.babylearning.chinese'
+        minSdk 26
+        targetSdk 35
+        versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1')
+        versionName System.getenv('VERSION_NAME') ?: '1.0.0'
+    }
+
+    signingConfigs {
+        release {
+            // CI 里配置了签名密钥就用它；否则退回 debug 签名，保证总能产出可安装的 APK
+            def ks = System.getenv('ANDROID_KEYSTORE_FILE')
+            if (ks && file(ks).exists()) {
+                storeFile file(ks)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            } else {
+                def dbg = signingConfigs.debug
+                storeFile dbg.storeFile
+                storePassword dbg.storePassword
+                keyAlias dbg.keyAlias
+                keyPassword dbg.keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    sourceSets {
+        main.assets.srcDirs += webOut
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn copyWebAssets }

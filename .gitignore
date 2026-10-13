@@ -4,3 +4,12 @@ node_modules/
 *.log
 .vscode/
 .idea/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
+*.apk

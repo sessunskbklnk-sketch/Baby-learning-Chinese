@@ -623,6 +623,13 @@ let sayId = 0;
 function say(list) {
   const id = ++sayId;
   return new Promise(res => {
+    if (store.voice && window.AndroidTTS && AndroidTTS.speakLang) {   // 安卓 App：用系统朗读引擎
+      const todo = list.filter(p => AndroidTTS.hasLang(p.l));
+      if (!todo.length) return res();
+      todo.forEach((p, i) => AndroidTTS.speakLang(p.t, p.l, p.l === 'zh' ? 0.82 : 0.88, i === 0));
+      const est = todo.reduce((s, p) => s + (p.l === 'zh' ? p.t.length * 320 : p.t.length * 90) + 500, 600);
+      return setTimeout(res, est);
+    }
     if (!store.voice || !('speechSynthesis' in window)) return res();
     // 找到了声音列表却没有这种语言，就不读，免得用英语的声音念芬兰语
     const todo = list.filter(p => V[p.l] || !voicesSeen);
@@ -647,10 +654,14 @@ function say(list) {
     else go();
   });
 }
-function hush() { sayId++; try { speechSynthesis.cancel(); } catch (e) {} }
+function hush() { sayId++; try { if (window.AndroidTTS) AndroidTTS.stop(); else speechSynthesis.cancel(); } catch (e) {} }
 function updateVoiceNote() {
   const n = $('#voice-note');
   if (!n) return;
+  if (window.AndroidTTS && AndroidTTS.hasLang) {
+    n.textContent = '朗读：系统朗读引擎' + (AndroidTTS.hasLang('fi') ? '' : '。没有芬兰语声音：在“文字转语音”设置里选 Google 引擎，下载 suomi。');
+    return;
+  }
   if (!('speechSynthesis' in window)) { n.textContent = '这个浏览器不能朗读，游戏里只显示文字。Tämä selain ei osaa lukea ääneen.'; return; }
   const zh = V.zh ? '中文声音：' + V.zh.name : '没有找到中文声音';
   const fi = V.fi ? 'Suomen ääni: ' + V.fi.name : 'Suomenkielistä ääntä ei löytynyt';
