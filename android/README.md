@@ -18,7 +18,11 @@ cd android
 
 ## 发布
 
-推送 `v*` 标签会触发 [Android APK](../.github/workflows/android.yml) 工作流，并把 `baby-learning-chinese.apk` 附到 GitHub Release。其它推送只上传构建产物（Actions → Artifacts）。
+[Android APK](../.github/workflows/android.yml) 工作流在每次推送时构建 APK：
+
+- 推送到默认分支：自动创建 `v1.0.<构建号>` 标签和 Release，附上 `baby-learning-chinese.apk`
+- 推送 `v*` 标签：按标签名发布 Release
+- 其它分支 / PR：只上传构建产物（Actions → Artifacts）
 
 ### 正式签名
 

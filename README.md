@@ -53,7 +53,7 @@ python3 -m http.server 8000
 
 ### 构建安卓 App
 
-见 [android/README.md](android/README.md)。推送 `v*` 标签（如 `v1.0.0`）后 GitHub Actions 自动构建 APK 并发布到 Releases。
+见 [android/README.md](android/README.md)。每次推送到默认分支，GitHub Actions 会自动构建 APK 并发布到 Releases。
 
 ### 部署到 GitHub Pages
 
