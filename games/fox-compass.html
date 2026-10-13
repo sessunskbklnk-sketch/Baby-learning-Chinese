@@ -1,0 +1,1378 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>狐狸指南针 Kettukompassi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Noto+Serif+SC:wght@600&family=ZCOOL+QingKe+HuangYou&display=swap">
+<style>
+  /* 定向越野地图的颜色：白=树林，黄=空地，绿=灌木，蓝=水，棕=等高线，紫红=路线 */
+  :root{
+    --paper:#ffffff;
+    --ink:#1c1b22;
+    --ink-soft:#5b5866;
+    --rule:#d9d4df;
+    --open:#ffc53d;
+    --open-soft:#ffe6a1;
+    --open-pale:#fff6da;
+    --veg:#3fae55;
+    --veg-soft:#cdeec7;
+    --veg-mid:#97d898;
+    --tz:#8fd398;
+    --water:#2fb0e5;
+    --water-soft:#d3effb;
+    --water-deep:#1583b8;
+    --contour:#b8671f;
+    --course:#b3179b;
+    --course-soft:#f8e0f1;
+    --flag:#f26a1b;
+    --ok:#2e9d4b;
+    --bad:#d23b2d;
+    --f-cn:"ZCOOL QingKe HuangYou","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    --f-han:"KaiTi","STKaiti","Kaiti SC","BiauKai","Noto Serif SC","Songti SC",serif;
+    --f-lat:"Andika","Trebuchet MS",system-ui,sans-serif;
+    --f-ui:"Andika","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+    --f-emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:15px;
+    -webkit-tap-highlight-color:transparent;overflow-x:hidden;
+  }
+  body.playing{overflow:hidden;-webkit-user-select:none;user-select:none}
+  button{font:inherit;color:inherit;touch-action:manipulation}
+  :focus-visible{outline:3px solid var(--course);outline-offset:3px}
+  p{margin:0}
+  .han{font-family:var(--f-han)}
+  #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .sprite{position:absolute;width:0;height:0;overflow:hidden}
+
+  /* 只说中文 / 只说芬兰语时，藏起另一种 */
+  body[data-lang="zh"] .L-fi{display:none!important}
+  body[data-lang="fi"] .L-zh{display:none!important}
+
+  /* ---------- 首页 ---------- */
+  #home{position:relative;z-index:1;max-width:900px;margin:0 auto;padding-inline:16px;padding-block:28px 40px;display:flex;flex-direction:column;gap:36px}
+  .hero{display:flex;flex-direction:column;gap:10px}
+  .eyebrow{display:flex;align-items:center;gap:8px;font:700 13px/1 var(--f-lat);letter-spacing:.14em;text-transform:uppercase;color:var(--course)}
+  .eyebrow svg{width:20px;height:18px;fill:none;stroke:var(--course);stroke-width:2.6;stroke-linejoin:round}
+  h1{margin:0;display:flex;flex-direction:column;gap:4px}
+  .h-zh{font-family:var(--f-cn);font-weight:400;font-size:clamp(54px,15vw,92px);line-height:1;letter-spacing:.04em;text-shadow:0 0 8px #fff,0 0 3px #fff}
+  .h-fi{font:700 clamp(24px,6.4vw,36px)/1.1 var(--f-lat);color:var(--course);text-shadow:0 0 6px #fff}
+  .lede{font-size:16px;line-height:1.65;color:var(--ink-soft);max-width:34em;text-shadow:0 0 6px #fff}
+  .lang-pick{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .lang-label{font-weight:700;font-size:14px}
+  .lang-label span{font-weight:400;color:var(--ink-soft)}
+  .seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#fff;max-width:540px}
+  .seg button{border:0;background:none;padding:8px 6px;min-height:58px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:17px;line-height:1.15}
+  .seg button+button{border-left:2px solid var(--ink)}
+  .seg button small{font-weight:400;font-size:12px;color:var(--ink-soft)}
+  .seg button[aria-checked="true"]{background:var(--course);color:#fff}
+  .seg button[aria-checked="true"] small{color:#fbe0f3}
+
+  h2{margin:0;font-family:var(--f-cn);font-weight:400;font-size:30px;line-height:1.1;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;text-wrap:balance}
+  h2 span{font:700 16px var(--f-lat);color:var(--ink-soft)}
+  .sec-sub{margin-top:6px;color:var(--ink-soft);line-height:1.55}
+  .sec-sub span{display:block}
+
+  .learn{display:flex;flex-direction:column;gap:16px}
+  .learn-grid{display:grid;gap:18px;grid-template-columns:minmax(0,1fr);align-items:center}
+  @media (min-width:760px){.learn-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}}
+  .rose-wrap{width:100%;max-width:440px;margin-inline:auto}
+  #rose{display:block;width:100%;height:auto;overflow:visible}
+  .rz-bezel{fill:#fff;stroke:var(--ink);stroke-width:3}
+  .rz-face{fill:var(--open-pale);stroke:var(--ink);stroke-width:2}
+  .rz-tick{stroke:var(--ink);stroke-width:1.4}
+  .rz-tick.big{stroke-width:3}
+  .rz-n{fill:var(--course)}
+  .rz-hub{fill:#fff;stroke:var(--ink);stroke-width:2.5}
+  .rd{cursor:pointer;outline:none}
+  .rd .arm-a{fill:#fff;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;transition:fill .2s}
+  .rd .arm-b{fill:var(--ink);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;transition:fill .2s}
+  .rd .hit{fill:transparent}
+  .rd .lab-han{font-family:var(--f-han);font-size:42px;fill:var(--ink)}
+  .rd .lab-han.sm{font-size:25px}
+  .rd .lab-fi{font:700 19px var(--f-lat);fill:var(--ink-soft)}
+  .rd .lab-fi.sm{font-size:14px}
+  .rd:hover .arm-a{fill:var(--course-soft)}
+  .rd.sel .arm-a{fill:var(--course-soft);stroke:var(--course)}
+  .rd.sel .arm-b{fill:var(--course);stroke:var(--course)}
+  .rd.sel .lab-han,.rd.sel .lab-fi{fill:var(--course)}
+  .rd:focus-visible .hit{stroke:var(--course);stroke-width:3;stroke-dasharray:5 4}
+
+  .info{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .info-head{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px}
+  .tzg{display:flex}
+  .tz{
+    width:92px;height:92px;display:grid;place-items:center;font-family:var(--f-han);font-size:72px;line-height:1;color:var(--ink);
+    border:2px solid var(--veg);
+    background:
+      repeating-linear-gradient(to right,var(--tz) 0 6px,transparent 6px 11px) center/100% 1.5px no-repeat,
+      repeating-linear-gradient(to bottom,var(--tz) 0 6px,transparent 6px 11px) center/1.5px 100% no-repeat,
+      #fff;
+  }
+  .tz+.tz{border-left:0}
+  .info-words{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .i-py{font:400 22px var(--f-lat);color:var(--ink-soft)}
+  .i-fi{font:700 30px/1.1 var(--f-lat);color:var(--course)}
+  .i-spk{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border:2px solid var(--ink);border-radius:999px;background:#fff;cursor:pointer;font-weight:700;font-size:14px}
+  .chip svg{width:18px;height:18px;fill:currentColor;stroke:currentColor;flex:none}
+  .chip:hover{border-color:var(--course);color:var(--course)}
+  .chip.wide{align-self:flex-start}
+  .chip span{font-weight:400}
+  .i-cmd{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding-top:12px;border-top:1.5px dashed var(--rule);font-size:18px;font-weight:700}
+  .i-cmd .han{font-size:24px;font-weight:400}
+  .i-cmd .dotsep{color:var(--rule)}
+  .i-fact{line-height:1.6;font-size:16px;max-width:36em}
+  .i-fact.han{font-size:19px}
+  .i-fun{display:flex;gap:10px;align-items:flex-start;background:var(--open-pale);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.55}
+  .i-fun svg{width:22px;height:22px;flex:none;margin-top:2px}
+  .i-fun span span{color:var(--ink-soft)}
+
+  .rhyme{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;width:100%;text-align:left;cursor:pointer;background:#fff;border:2px solid var(--ink);border-radius:16px;padding:12px 16px}
+  .rhyme:hover{border-color:var(--course)}
+  .rh-zh{font-family:var(--f-han);font-size:28px;letter-spacing:.06em;white-space:nowrap}
+  .rh-fi{font-weight:700;color:var(--ink-soft);flex:1 1 14em}
+  .rh-spk{width:26px;height:26px;fill:var(--course);stroke:var(--course);flex:none}
+
+  .games{display:flex;flex-direction:column;gap:16px}
+  .games-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+  .total{font:700 18px var(--f-lat);font-variant-numeric:tabular-nums;color:var(--ink)}
+  .total b{color:var(--flag)}
+  .game-list{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .game{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .game-head{display:flex;gap:12px;align-items:center}
+  .g-ico{width:58px;height:58px;border-radius:12px;display:grid;place-items:center;flex:none;border:2px solid var(--ink)}
+  .g-ico svg{width:44px;height:44px}
+  .g-ico.t-open{background:var(--open-soft)}
+  .g-ico.t-veg{background:var(--veg-soft)}
+  .g-ico.t-water{background:var(--water-soft)}
+  .game h3{margin:0;font-family:var(--f-cn);font-weight:400;font-size:25px;line-height:1.1}
+  .game .g-fi{font:700 15px var(--f-lat);color:var(--course)}
+  .g-desc{font-size:14px;line-height:1.55;color:var(--ink-soft)}
+  .g-desc span{display:block;margin-top:2px}
+  .levels{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+  .lv{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:54px;padding:6px 10px;border:1.5px solid var(--rule);border-radius:12px;background:#fff;text-align:left;cursor:pointer}
+  .lv:hover{border-color:var(--course)}
+  .lv:active{transform:translateY(1px)}
+  .lv-n{width:36px;height:36px;border-radius:50%;border:3.5px solid var(--course);color:var(--course);font:700 17px var(--f-lat);display:grid;place-items:center}
+  .lv-t{display:flex;flex-direction:column;font-weight:700;font-size:14px;line-height:1.25}
+  .lv-t small{font-weight:400;font-size:12px;color:var(--ink-soft)}
+  .lv-s{font-size:17px;letter-spacing:1px;white-space:nowrap}
+  .st{color:var(--flag)}
+  .st.off{color:#ddd6e3}
+
+  .foot{display:flex;flex-direction:column;gap:10px;padding-top:18px;border-top:1.5px dashed var(--rule);background:linear-gradient(#fff0,#fffc 30%)}
+  .toggles{display:flex;flex-wrap:wrap;gap:8px}
+  .tg{min-height:40px;padding:6px 14px;border:2px solid var(--ink);border-radius:999px;background:#fff;cursor:pointer;font-weight:700;font-size:14px}
+  .tg span{font-weight:400;color:var(--ink-soft)}
+  .tg[aria-pressed="false"]{border-style:dashed;color:var(--ink-soft)}
+  .tg[aria-pressed="false"]::after{content:" ✕"}
+  .tg.quiet{border-color:var(--rule)}
+  .tg.warn{border-color:var(--bad);color:var(--bad)}
+  .voice-note{font-size:13px;line-height:1.6;color:var(--ink-soft);max-width:48em}
+
+  /* ---------- 游戏画面 ---------- */
+  .play{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 6px) 16px calc(env(safe-area-inset-bottom,0px) + 10px)}
+  .bar{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;max-width:1060px;margin-inline:auto;padding-block:4px}
+  .back{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:#fff;display:grid;place-items:center;cursor:pointer}
+  .back svg{width:22px;height:22px}
+  .bar-t{min-width:0}
+  .bar-t b{display:block;font-family:var(--f-cn);font-weight:400;font-size:22px;line-height:1.15}
+  .bar-t small{display:block;font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hud{display:flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:4px 10px;min-height:40px}
+  .hud-i{width:26px;height:26px;display:grid;place-items:center;opacity:.25;filter:grayscale(1);font-family:var(--f-emoji);font-size:20px;line-height:1}
+  .hud-i svg{width:26px;height:26px}
+  .hud-i.got{opacity:1;filter:none;animation:pop .45s cubic-bezier(.3,1.7,.5,1)}
+  .dots{display:flex;gap:5px}
+  .dots i{width:11px;height:11px;border-radius:50%;border:2px solid var(--course)}
+  .dots i.done{background:var(--course)}
+  .dots i.now{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--course)}
+  .stat{font:700 14px var(--f-lat);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .stat small{font-weight:400;color:var(--ink-soft)}
+
+  .bubble{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:8px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;text-align:center;cursor:pointer}
+  .bubble .han{font-size:32px;line-height:1.15}
+  .bubble em{font-style:normal;color:var(--course)}
+  .bubble .b-py{display:block;font:15px var(--f-lat);color:var(--ink-soft)}
+  .bubble .b-fi{font:700 22px/1.25 var(--f-lat)}
+  .bubble .b-fi em{font-weight:700}
+  .q-row{display:flex;align-items:center;gap:12px}
+  .q-emo{font-family:var(--f-emoji);font-size:40px;line-height:1}
+  .q-tip{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+
+  /* 小狐狸回家 */
+  .g1-main{flex:1;min-height:0;width:100%;max-width:560px;margin-inline:auto;display:grid;gap:10px;padding-top:6px;
+    grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"bub" "map" "pad"}
+  .g1-main .bubble{grid-area:bub}
+  .board-wrap{grid-area:map;min-height:0;container-type:size;display:grid;place-items:center}
+  .board{position:relative;width:min(88vw,46vh);height:min(88vw,46vh);width:100cqmin;height:100cqmin;border:3px solid var(--ink);border-radius:6px;overflow:hidden;background:#fff}
+  .board>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .tok{position:absolute;aspect-ratio:1;transform:translate(-50%,-50%);transition:left .34s ease,top .34s ease;pointer-events:none;z-index:2}
+  .tok.jump{transition:none}
+  .tok svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 3px 0 rgba(28,27,34,.25))}
+  .hopper{width:100%;height:100%}
+  .hopper.hop{animation:hop .34s ease}
+  .hopper.no{animation:no .42s ease}
+  .pad{grid-area:pad;--pb:clamp(64px,20vw,88px);display:grid;grid-template-columns:repeat(3,var(--pb));grid-template-rows:repeat(3,var(--pb));gap:8px;justify-content:center}
+  @media (max-height:720px){.pad{--pb:clamp(58px,17vw,72px)}}
+  .pb{position:relative;border:2px solid var(--ink);border-radius:16px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px 4px;cursor:pointer;line-height:1.05}
+  .pb:active{transform:translateY(2px)}
+  .pb.off{visibility:hidden}
+  .pb .arr{position:absolute;width:13px;height:13px;fill:var(--course)}
+  .pb .han{font-size:28px}
+  .pb .han.two{font-size:21px}
+  .pb .py{font:12px var(--f-lat);color:var(--ink-soft)}
+  .pb .fiw{font:700 clamp(10.5px,3vw,13px) var(--f-lat)}
+  body:not([data-lang="zh"]) .pb .py{display:none}
+  .pad.nolabel .pb .han,.pad.nolabel .pb .py,.pad.nolabel .pb .fiw{display:none}
+  .pad.nolabel .pb .arr{left:50%!important;top:50%!important;width:34px;height:34px}
+  .pb.hint{border-color:var(--course);animation:hint 1s ease-in-out infinite}
+  .pb.shake,.ans.shake{animation:shake .38s}
+  .pc{border:0;border-radius:50%;background:var(--course);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;margin:8%}
+  .pc svg{width:40%;height:40%;fill:#fff;stroke:#fff}
+  .pc small{font-size:11px;font-weight:700}
+  .pc:active{transform:scale(.95)}
+
+  .m-white{fill:#fff}
+  .m-open{fill:var(--open-soft)}
+  .m-veg{fill:var(--veg-soft)}
+  .m-veg2{fill:var(--veg-mid)}
+  .m-lake-edge{fill:var(--ink)}
+  .m-lake{fill:var(--water)}
+  .m-ct{fill:none;stroke:var(--contour);stroke-width:2.5;opacity:.75}
+  .m-ct.idx{stroke-width:4.5}
+  .m-north{stroke:var(--water-deep);stroke-width:3;opacity:.5}
+  .m-north-h{fill:var(--water-deep);opacity:.6}
+  .m-rock{fill:var(--ink)}
+  .m-dot{fill:var(--ink);opacity:.2}
+  .m-home{font-family:var(--f-emoji);font-size:44px}
+  .c-line{fill:none;stroke:var(--course);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+  .c-sym{fill:none;stroke:var(--course);stroke-width:6}
+  .c-num{fill:var(--course);font:700 34px var(--f-lat);paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}
+
+  /* 小动物在哪边 */
+  .g2-main{flex:1;min-height:0;width:100%;max-width:560px;margin-inline:auto;display:grid;gap:10px;padding-top:6px;
+    grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"bub" "map" "ans"}
+  .g2-main .bubble{grid-area:bub}
+  .clear-wrap{grid-area:map;min-height:0;container-type:size;display:grid;place-items:center}
+  .clearing{position:relative;width:min(88vw,44vh);height:min(88vw,44vh);width:100cqmin;height:100cqmin}
+  .rot{position:absolute;inset:0;transition:transform .8s cubic-bezier(.5,0,.3,1)}
+  .rot svg{width:100%;height:100%;display:block}
+  .s-veg{fill:var(--veg-soft)}
+  .s-tree{fill:var(--veg);stroke:var(--ink);stroke-width:1.5}
+  .s-open{fill:var(--open-soft)}
+  .s-edge{fill:none;stroke:var(--ink);stroke-width:3.5;stroke-dasharray:.5 8;stroke-linecap:round}
+  .s-north{stroke:var(--water-deep);stroke-width:4}
+  .s-north-h{fill:var(--water-deep)}
+  .s-n{fill:var(--water-deep);font:700 24px var(--f-lat)}
+  .s-spot{fill:#fff8;stroke:var(--course);stroke-width:4;opacity:.7}
+  .s-dot{fill:var(--course);opacity:.35}
+  .fox-c{position:absolute;left:50%;top:50%;width:25%;aspect-ratio:1;transform:translate(-50%,-50%)}
+  .fox-c svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 3px 0 rgba(28,27,34,.25))}
+  .fox-c.happy{animation:hop .5s ease 2}
+  .item{position:absolute;font-family:var(--f-emoji);font-size:15cqmin;line-height:1;transform:translate(-50%,-50%) scale(0);transition:transform .32s cubic-bezier(.3,1.6,.5,1);z-index:2}
+  .item.show{transform:translate(-50%,-50%) scale(1)}
+  .item.bounce{animation:bounce .6s ease}
+  .ghost{position:absolute;transform:translate(-50%,-50%);background:#fff;border:2px solid var(--bad);color:var(--bad);border-radius:10px;padding:2px 8px;font-weight:700;font-size:15px;white-space:nowrap;display:flex;gap:6px;align-items:baseline;animation:ghost 1.5s ease forwards;z-index:3;pointer-events:none}
+  .ghost .han{font-size:22px;font-weight:400}
+  .answers{grid-area:ans;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .ans{min-height:76px;border:2px solid var(--ink);border-radius:16px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:6px;line-height:1.1}
+  .ans:active{transform:translateY(2px)}
+  .ans .han{font-size:34px}
+  .ans .py{font:14px var(--f-lat);color:var(--ink-soft)}
+  .ans .fiw{font:700 19px var(--f-lat)}
+  body:not([data-lang="zh"]) .ans .py{display:none}
+  .ans.ok{background:var(--veg-soft);border-color:var(--ok)}
+  .ans.no{opacity:.35;border-style:dashed}
+
+  /* 翻牌配对 */
+  .g3-main{flex:1;min-height:0;width:100%;max-width:640px;margin-inline:auto;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:10px;padding-top:10px}
+  .mem-wrap{min-height:0;container-type:size;display:grid;place-items:center}
+  .mem-grid{--c:4;--r:2;display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:10px;width:100%;
+    width:min(100cqw,calc((100cqh - (var(--r) - 1) * 10px) / var(--r) * .75 * var(--c) + (var(--c) - 1) * 10px))}
+  .card{aspect-ratio:3/4;border:0;padding:0;background:none;cursor:pointer;perspective:700px;container-type:inline-size;display:block}
+  .card-in{position:relative;display:block;width:100%;height:100%;transition:transform .4s ease;transform-style:preserve-3d}
+  .card.up .card-in{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;border-radius:10px;border:2px solid var(--ink);-webkit-backface-visibility:hidden;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;gap:2cqw}
+  .f-back{background:linear-gradient(to bottom right,#fff 49.6%,var(--flag) 50.4%)}
+  .code{position:absolute;top:5cqw;left:8cqw;font:700 15cqw var(--f-lat);color:var(--ink)}
+  .f-front{transform:rotateY(180deg);background:#fff}
+  .f-front.fi{background:var(--water-soft)}
+  .f-front .han{font-size:50cqw;line-height:1}
+  .f-front .han.two{font-size:36cqw}
+  .f-front .py{font:14cqw var(--f-lat);color:var(--ink-soft)}
+  .f-front .fiw{font:700 16cqw var(--f-lat)}
+  .f-front .arr{position:absolute;bottom:7cqw;width:18cqw;height:18cqw;fill:var(--course);opacity:0;transition:opacity .3s}
+  .card.done .f-front{border-color:var(--ok);box-shadow:inset 0 0 0 4px var(--veg-soft)}
+  .card.done .arr{opacity:1}
+  .card.done .card-in{animation:matched .5s ease}
+  .g3-tip{text-align:center;font-size:14px;line-height:1.5;color:var(--ink-soft)}
+  .g3-tip span{display:block}
+
+  @media (min-width:820px) and (min-aspect-ratio:5/4){
+    .g1-main,.g2-main{max-width:1060px;column-gap:32px;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr)}
+    .g1-main{grid-template-areas:"map bub" "map pad"}
+    .g2-main{grid-template-areas:"map bub" "map ans"}
+    .g1-main .bubble,.g2-main .bubble{align-self:end}
+    .pad{--pb:100px;align-self:start}
+    .answers{align-self:start}
+    .ans{min-height:96px}
+  }
+
+  /* 过关 */
+  .overlay{position:fixed;inset:0;z-index:20;background:rgba(28,27,34,.45);display:grid;place-items:center;padding:16px}
+  .done-card{background:#fff;border:3px solid var(--ink);border-radius:20px;padding:20px 18px;width:min(420px,100%);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;animation:pop .35s cubic-bezier(.3,1.5,.5,1)}
+  .done-fox{width:92px;height:92px;animation:hop .6s ease 3}
+  .done-fox svg{width:100%;height:100%}
+  .done-card h2{flex-direction:column;align-items:center;gap:2px;font-size:36px}
+  .done-card h2 span{font-size:18px;color:var(--course)}
+  .done-stars{font-size:50px;letter-spacing:6px;line-height:1}
+  .done-stars .st{display:inline-block;animation:starIn .5s cubic-bezier(.3,1.7,.5,1) both}
+  .done-stat{color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .done-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px}
+  .btn{min-height:52px;min-width:96px;padding:6px 14px;border:2px solid var(--ink);border-radius:14px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;cursor:pointer;font-weight:700;font-size:16px}
+  .btn small{font-weight:400;font-size:12px;color:var(--ink-soft)}
+  .btn.primary{background:var(--course);border-color:var(--course);color:#fff}
+  .btn.primary small{color:#fbe0f3}
+
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:30;overflow:hidden}
+  .cf{position:absolute;top:-24px;width:14px;height:14px;animation:fall 2.4s linear forwards}
+  .cf.flag{background:linear-gradient(to bottom right,#fff 48%,var(--flag) 52%);border:1.5px solid var(--ink)}
+  .cf.ring{border:3.5px solid var(--course);border-radius:50%}
+  .cf.dot{background:var(--open);border-radius:50%;width:10px;height:10px}
+
+  @keyframes hop{0%{transform:translateY(0)}45%{transform:translateY(-32%) scale(1.06)}100%{transform:translateY(0)}}
+  @keyframes no{0%,100%{transform:translateX(0)}20%{transform:translateX(-12%) rotate(-6deg)}50%{transform:translateX(10%) rotate(5deg)}75%{transform:translateX(-5%)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+  @keyframes hint{0%,100%{box-shadow:0 0 0 0 var(--course-soft)}50%{box-shadow:0 0 0 7px var(--course-soft)}}
+  @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes starIn{0%{transform:scale(0) rotate(-40deg)}100%{transform:scale(1) rotate(0)}}
+  @keyframes bounce{0%,100%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-50%) scale(1.35)}65%{transform:translate(-50%,-50%) scale(.92)}}
+  @keyframes ghost{0%{opacity:0;transform:translate(-50%,-30%)}15%{opacity:1;transform:translate(-50%,-50%)}75%{opacity:1}100%{opacity:0}}
+  @keyframes matched{50%{transform:rotateY(180deg) scale(1.08)}100%{transform:rotateY(180deg)}}
+  @keyframes fall{to{transform:translate(var(--dx),calc(100vh + 40px)) rotate(var(--rot))}}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  }
+</style>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="fox" viewBox="-50 -54 100 100">
+      <path d="M-38-16L-31-51L-5-30Z" fill="#e0611c" stroke="#1c1b22" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M-30.5-41L-26.5-24L-13-29Z" fill="#40251a"/>
+      <path d="M38-16L31-51L5-30Z" fill="#e0611c" stroke="#1c1b22" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M30.5-41L26.5-24L13-29Z" fill="#40251a"/>
+      <path d="M-44-15Q-41 16 0 42Q41 16 44-15Q25-36 0-34Q-25-36-44-15Z" fill="#f47b2a"/>
+      <path d="M-43-8Q-37 20 0 42Q-5 22-13 10Q-29 8-43-8Z" fill="#fff"/>
+      <path d="M43-8Q37 20 0 42Q5 22 13 10Q29 8 43-8Z" fill="#fff"/>
+      <ellipse cx="-15" cy="-7" rx="4.8" ry="5.8" fill="#1c1b22"/>
+      <ellipse cx="15" cy="-7" rx="4.8" ry="5.8" fill="#1c1b22"/>
+      <circle cx="-13.4" cy="-9.2" r="1.7" fill="#fff"/>
+      <circle cx="16.6" cy="-9.2" r="1.7" fill="#fff"/>
+      <ellipse cx="0" cy="36" rx="6.5" ry="4.8" fill="#1c1b22"/>
+      <path d="M-44-15Q-41 16 0 42Q41 16 44-15Q25-36 0-34Q-25-36-44-15Z" fill="none" stroke="#1c1b22" stroke-width="2.5" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="flag" viewBox="0 0 40 40">
+      <rect x="3" y="3" width="34" height="34" fill="#fff"/>
+      <path d="M37 3V37H3Z" fill="#f26a1b"/>
+      <rect x="3" y="3" width="34" height="34" fill="none" stroke="#1c1b22" stroke-width="2.5"/>
+    </symbol>
+    <symbol id="spk" viewBox="0 0 24 24">
+      <path d="M3.5 9.2h3.6L12 5v14l-4.9-4.2H3.5z" stroke="none"/>
+      <path d="M15.2 9.3a3.8 3.8 0 0 1 0 5.4M17.9 6.6a7.6 7.6 0 0 1 0 10.8" fill="none" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<main id="home" class="screen">
+  <header class="hero">
+    <p class="eyebrow"><svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 3L21.5 19.5H2.5Z"/></svg>东南西北 · Ilmansuunnat</p>
+    <h1><span class="h-zh">狐狸指南针</span><span class="h-fi" lang="fi">Kettukompassi</span></h1>
+    <p class="lede">跟着小狐狸学东南西北，说中文，也说芬兰语。<br><span lang="fi">Opi ilmansuunnat kiinaksi ja suomeksi ketun kanssa.</span></p>
+    <div class="lang-pick">
+      <p class="lang-label">游戏里说 <span lang="fi">· Pelissä puhutaan</span></p>
+      <div class="seg" id="lang" role="radiogroup" aria-label="游戏语言 Pelin kieli">
+        <button type="button" role="radio" id="lang-zh" data-lang="zh" aria-checked="false">中文<small>kiina</small></button>
+        <button type="button" role="radio" id="lang-fi" data-lang="fi" aria-checked="false">Suomi<small>芬兰语</small></button>
+        <button type="button" role="radio" id="lang-both" data-lang="both" aria-checked="true">中文 + Suomi<small>都说 · molemmat</small></button>
+      </div>
+    </div>
+  </header>
+
+  <section class="learn" aria-labelledby="learn-h">
+    <div>
+      <h2 id="learn-h">认一认 <span lang="fi">Opi suunnat</span></h2>
+      <p class="sec-sub">点指南针上的字，听一听。<span lang="fi">Kosketa kompassia ja kuuntele.</span></p>
+    </div>
+    <div class="learn-grid">
+      <div class="rose-wrap"><svg id="rose" viewBox="-212 -212 424 424" role="group" aria-label="指南针 Kompassi"></svg></div>
+      <article class="info" id="info" aria-live="polite"></article>
+    </div>
+    <button type="button" class="rhyme" id="rhyme">
+      <span class="rh-zh">上北 下南 左西 右东</span>
+      <span class="rh-fi" lang="fi">Kartalla pohjoinen on aina ylhäällä.</span>
+      <svg class="rh-spk" viewBox="0 0 24 24" aria-hidden="true"><use href="#spk"/></svg>
+    </button>
+  </section>
+
+  <section class="games" aria-labelledby="games-h">
+    <div class="games-head">
+      <h2 id="games-h">游戏 <span lang="fi">Pelit</span></h2>
+      <p class="total" id="total"></p>
+    </div>
+    <div class="game-list" id="game-list"></div>
+  </section>
+
+  <footer class="foot">
+    <div class="toggles">
+      <button type="button" class="tg" id="tg-voice" aria-pressed="true">朗读 <span lang="fi">Puhe</span></button>
+      <button type="button" class="tg" id="tg-sfx" aria-pressed="true">音效 <span lang="fi">Äänitehosteet</span></button>
+      <button type="button" class="tg quiet" id="reset">清除星星 <span lang="fi">Nollaa tähdet</span></button>
+    </div>
+    <p class="voice-note" id="voice-note"></p>
+  </footer>
+</main>
+
+<section id="g1" class="screen play" hidden aria-label="小狐狸回家 Kettu kotiin">
+  <header class="bar">
+    <button type="button" class="back" data-back aria-label="返回 Takaisin"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="bar-t"><b>小狐狸回家</b><small id="g1-lv"></small></div>
+    <div class="hud" id="g1-hud" aria-label="旗子 Rastit"></div>
+  </header>
+  <div class="g1-main">
+    <div class="bubble" id="g1-bubble" role="status" aria-live="polite" title="再听一次 Kuuntele uudelleen"></div>
+    <div class="board-wrap">
+      <div class="board" id="g1-board">
+        <svg id="g1-map" aria-hidden="true"></svg>
+        <div class="tok" id="g1-fox"><div class="hopper"><svg viewBox="0 0 100 100"><use href="#fox" width="100" height="100"/></svg></div></div>
+      </div>
+    </div>
+    <div class="pad" id="g1-pad"></div>
+  </div>
+</section>
+
+<section id="g2" class="screen play" hidden aria-label="小动物在哪边 Missä eläin on">
+  <header class="bar">
+    <button type="button" class="back" data-back aria-label="返回 Takaisin"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="bar-t"><b>小动物在哪边</b><small id="g2-lv"></small></div>
+    <div class="hud"><div class="dots" id="g2-dots"></div></div>
+  </header>
+  <div class="g2-main">
+    <div class="bubble" id="g2-bubble" role="status" aria-live="polite" title="再听一次 Kuuntele uudelleen"></div>
+    <div class="clear-wrap">
+      <div class="clearing" id="g2-clear">
+        <div class="rot" id="g2-rot"><svg id="g2-svg" viewBox="-205 -205 410 410" aria-hidden="true"></svg></div>
+        <div class="fox-c" id="g2-fox"><svg viewBox="0 0 100 100"><use href="#fox" width="100" height="100"/></svg></div>
+        <div class="item" id="g2-item" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="answers" id="g2-ans"></div>
+  </div>
+</section>
+
+<section id="g3" class="screen play" hidden aria-label="翻牌配对 Muistipeli">
+  <header class="bar">
+    <button type="button" class="back" data-back aria-label="返回 Takaisin"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="bar-t"><b>翻牌配对</b><small id="g3-lv"></small></div>
+    <div class="hud"><span class="stat" id="g3-stat"></span></div>
+  </header>
+  <div class="g3-main">
+    <div class="mem-wrap"><div class="mem-grid" id="g3-grid"></div></div>
+    <p class="g3-tip">每次翻两张，中文和芬兰语意思一样就配成一对。<span lang="fi">Käännä kaksi korttia ja etsi parit: kiina ja suomi.</span></p>
+  </div>
+</section>
+
+<div class="overlay" id="done" hidden>
+  <div class="done-card" role="dialog" aria-modal="true" aria-labelledby="done-t">
+    <div class="done-fox"><svg viewBox="0 0 100 100"><use href="#fox" width="100" height="100"/></svg></div>
+    <h2 id="done-t"></h2>
+    <div class="done-stars" id="done-stars"></div>
+    <p class="done-stat" id="done-stat"></p>
+    <div class="done-btns">
+      <button type="button" class="btn" id="done-home">首页<small>Alkuun</small></button>
+      <button type="button" class="btn" id="done-again">再玩一次<small>Uudestaan</small></button>
+      <button type="button" class="btn primary" id="done-next">下一关<small>Seuraava</small></button>
+    </div>
+  </div>
+</div>
+<div id="confetti" aria-hidden="true"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const rint = n => Math.floor(Math.random() * n);
+const pick = a => a[rint(a.length)];
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const ARROW = '<path d="M0-9L7.5 7L0 3.5L-7.5 7Z"/>';
+const SPK = '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#spk"/></svg>';
+
+/* =========================== 方向 =========================== */
+// ill = 往哪里去（Mene pohjoiseen），ine = 在哪里（on pohjoisessa）
+const D = {
+  N:  { zh:'北',   py:'běi',     fi:'pohjoinen', ill:'pohjoiseen', ine:'pohjoisessa', ang:0,   dx:0,  dy:-1 },
+  NE: { zh:'东北', py:'dōngběi', fi:'koillinen', ill:'koilliseen', ine:'koillisessa', ang:45,  dx:1,  dy:-1 },
+  E:  { zh:'东',   py:'dōng',    fi:'itä',       ill:'itään',      ine:'idässä',      ang:90,  dx:1,  dy:0 },
+  SE: { zh:'东南', py:'dōngnán', fi:'kaakko',    ill:'kaakkoon',   ine:'kaakossa',    ang:135, dx:1,  dy:1 },
+  S:  { zh:'南',   py:'nán',     fi:'etelä',     ill:'etelään',    ine:'etelässä',    ang:180, dx:0,  dy:1 },
+  SW: { zh:'西南', py:'xīnán',   fi:'lounas',    ill:'lounaaseen', ine:'lounaassa',   ang:225, dx:-1, dy:1 },
+  W:  { zh:'西',   py:'xī',      fi:'länsi',     ill:'länteen',    ine:'lännessä',    ang:270, dx:-1, dy:0 },
+  NW: { zh:'西北', py:'xīběi',   fi:'luode',     ill:'luoteeseen', ine:'luoteessa',   ang:315, dx:-1, dy:-1 },
+};
+const MAIN = ['N', 'E', 'S', 'W'], INTER = ['NE', 'SE', 'SW', 'NW'];
+const ALL = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+const FACT = {
+  N:  { zh:'北边很冷。芬兰的北边是拉普兰，冬天能看到北极光。', fi:'Pohjoisessa on Lappi. Talvella siellä näkyy revontulia.',
+        funZh:'芬兰语的北极光叫 revontulet，意思是“狐狸的火”：传说一只狐狸在雪山上跑，尾巴扫起火花，飞上了天空。',
+        funFi:'Sana revontulet tarkoittaa ketun tulia. Tarinan mukaan kettu juoksee tunturilla, ja sen häntä lennättää kipinöitä taivaalle.' },
+  E:  { zh:'早上，太阳从东边升起来。', fi:'Aamulla aurinko nousee idästä.' },
+  S:  { zh:'中午，太阳在南边。芬兰的南边是大海。', fi:'Keskipäivällä aurinko on etelässä. Etelässä on meri.' },
+  W:  { zh:'傍晚，太阳从西边落下去。', fi:'Illalla aurinko laskee länteen.' },
+  NE: { zh:'东北在东和北的中间。', fi:'Koillinen on idän ja pohjoisen välissä.' },
+  SE: { zh:'东南在东和南的中间。', fi:'Kaakko on idän ja etelän välissä.' },
+  SW: { zh:'西南在西和南的中间。', fi:'Lounas on lännen ja etelän välissä.',
+        funZh:'好玩的词：lounas 在芬兰语里也是“午饭”。', funFi:'Hauska sana: lounas on myös ateria.' },
+  NW: { zh:'西北在西和北的中间。', fi:'Luode on lännen ja pohjoisen välissä.' },
+};
+
+const ITEMS = [
+  { e:'🍄', zh:'蘑菇',   fi:'sieni' },
+  { e:'🫐', zh:'蓝莓',   fi:'mustikka' },
+  { e:'🦌', zh:'驯鹿',   fi:'poro' },
+  { e:'🐻', zh:'小熊',   fi:'karhu' },
+  { e:'🐿️', zh:'松鼠',   fi:'orava' },
+  { e:'🦉', zh:'猫头鹰', fi:'pöllö' },
+  { e:'🐇', zh:'兔子',   fi:'jänis' },
+  { e:'🦔', zh:'刺猬',   fi:'siili' },
+  { e:'🐟', zh:'小鱼',   fi:'kala' },
+  { e:'🍓', zh:'草莓',   fi:'mansikka' },
+];
+
+const G1LV = [
+  { dirs:MAIN, labels:true,  n:5, len:8, zh:'四个方向 · 有字',   fi:'4 suuntaa · sanat' },
+  { dirs:MAIN, labels:false, n:5, len:8, zh:'四个方向 · 没有字', fi:'4 suuntaa · ilman sanoja' },
+  { dirs:ALL,  labels:true,  n:6, len:8, zh:'八个方向 · 有字',   fi:'8 suuntaa · sanat' },
+  { dirs:ALL,  labels:false, n:6, len:8, zh:'八个方向 · 没有字', fi:'8 suuntaa · ilman sanoja' },
+];
+const G2LV = [
+  { dirs:MAIN, rotate:false, zh:'四个方向',   fi:'4 suuntaa' },
+  { dirs:ALL,  rotate:false, zh:'八个方向',   fi:'8 suuntaa' },
+  { dirs:MAIN, rotate:true,  zh:'地图转一转', fi:'Kartta pyörii' },
+];
+const G3LV = [
+  { dirs:MAIN,  zh:'东南西北',           fi:'pääilmansuunnat' },
+  { dirs:INTER, zh:'东北 东南 西南 西北', fi:'väli-ilmansuunnat' },
+  { dirs:ALL,   zh:'八个方向',           fi:'kaikki 8 suuntaa' },
+];
+
+/* =========================== 存档 =========================== */
+const KEY = 'kettuKompassi.v1';
+const store = { lang:'both', voice:true, sfx:true, stars:{} };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') Object.assign(store, s); } catch (e) {}
+if (!['zh', 'fi', 'both'].includes(store.lang)) store.lang = 'both';
+if (!store.stars || typeof store.stars !== 'object') store.stars = {};
+function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+function saveStars(k, s) { store.stars[k] = Math.max(store.stars[k] | 0, s); save(); }
+
+/* =========================== 朗读 =========================== */
+const V = { zh:null, fi:null };
+let voicesSeen = false;
+function pickVoices() {
+  if (!('speechSynthesis' in window)) { updateVoiceNote(); return; }
+  let vs = [];
+  try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+  if (vs.length) voicesSeen = true;
+  const score = v => (/natural|neural|online|google|premium|enhanced/i.test(v.name) ? 2 : 0) + (/Xiaoxiao|Xiaoyi|Tingting|Noora|Selma|Satu/i.test(v.name) ? 1 : 0);
+  const best = re => vs.filter(v => re.test((v.lang || '').replace('_', '-'))).sort((a, b) => score(b) - score(a))[0] || null;
+  V.zh = best(/^zh-(CN|Hans)/i) || best(/^(zh|cmn)(?!.*(HK|yue))/i);
+  V.fi = best(/^fi/i);
+  updateVoiceNote();
+}
+if ('speechSynthesis' in window) {
+  pickVoices();
+  speechSynthesis.onvoiceschanged = pickVoices;
+  [300, 1200, 3000].forEach(t => setTimeout(() => { if (!V.zh || !V.fi) pickVoices(); }, t));
+}
+// 按设置挑出要说的话：parts('向北走', 'Mene pohjoiseen!')
+function parts(zh, fi) {
+  const a = [];
+  if (store.lang !== 'fi' && zh) a.push({ t:zh, l:'zh' });
+  if (store.lang !== 'zh' && fi) a.push({ t:fi, l:'fi' });
+  return a;
+}
+let sayId = 0;
+function say(list) {
+  const id = ++sayId;
+  return new Promise(res => {
+    if (!store.voice || !('speechSynthesis' in window)) return res();
+    // 找到了声音列表却没有这种语言，就不读，免得用英语的声音念芬兰语
+    const todo = list.filter(p => V[p.l] || !voicesSeen);
+    if (!todo.length) return res();
+    let over = false;
+    const end = () => { if (!over) { over = true; clearTimeout(timer); res(); } };
+    const est = todo.reduce((s, p) => s + (p.l === 'zh' ? p.t.length * 320 : p.t.length * 90) + 500, 600);
+    const timer = setTimeout(end, est + 2500);
+    const us = todo.map(p => {
+      const u = new SpeechSynthesisUtterance(p.t);
+      u.lang = p.l === 'zh' ? 'zh-CN' : 'fi-FI';
+      if (V[p.l]) u.voice = V[p.l];
+      u.rate = p.l === 'zh' ? 0.82 : 0.88;
+      return u;
+    });
+    us[us.length - 1].onend = end;
+    us[us.length - 1].onerror = end;
+    const go = () => { if (id !== sayId) return end(); try { us.forEach(u => speechSynthesis.speak(u)); } catch (e) { end(); } };
+    let busy = false;
+    try { busy = speechSynthesis.speaking || speechSynthesis.pending; } catch (e) {}
+    if (busy) { try { speechSynthesis.cancel(); } catch (e) {} setTimeout(go, 70); }
+    else go();
+  });
+}
+function hush() { sayId++; try { speechSynthesis.cancel(); } catch (e) {} }
+function updateVoiceNote() {
+  const n = $('#voice-note');
+  if (!n) return;
+  if (!('speechSynthesis' in window)) { n.textContent = '这个浏览器不能朗读，游戏里只显示文字。Tämä selain ei osaa lukea ääneen.'; return; }
+  const zh = V.zh ? '中文声音：' + V.zh.name : '没有找到中文声音';
+  const fi = V.fi ? 'Suomen ääni: ' + V.fi.name : 'Suomenkielistä ääntä ei löytynyt';
+  let tip = '';
+  if (voicesSeen && !V.fi) tip = ' 想听芬兰语：电脑上用 Edge 浏览器打开；安卓手机在“文字转语音”设置里选 Google 引擎，下载芬兰语（suomi）。';
+  n.textContent = zh + ' · ' + fi + '。' + tip;
+}
+
+/* =========================== 音效 =========================== */
+let actx = null;
+function ac() {
+  if (!store.sfx) return null;
+  if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) try { actx = new C(); } catch (e) {} }
+  if (actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(f, d, v, type, to, delay) {
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f, t);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(v, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g).connect(a.destination);
+  o.start(t); o.stop(t + d + 0.05);
+}
+const SFX = {
+  tap()  { tone(660, 0.07, 0.07, 'triangle'); },
+  hop()  { tone(420, 0.16, 0.11, 'triangle', 760); },
+  good() { tone(784, 0.14, 0.12); tone(1047, 0.22, 0.12, 'sine', 0, 0.1); },
+  bad()  { tone(200, 0.22, 0.05, 'square', 150); },
+  flag() { [659, 784, 988].forEach((f, i) => tone(f, 0.16, 0.11, 'triangle', 0, i * 0.09)); },
+  flip() { tone(900, 0.05, 0.05, 'triangle', 600); },
+  win()  { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, 0.11, 'triangle', 0, i * 0.11)); },
+};
+
+/* =========================== 背景：等高线 + 磁北线 =========================== */
+function seeded(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function drawBg() {
+  const cv = $('#bg'); if (!cv.getContext) return;
+  const w = innerWidth, h = innerHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const rnd = seeded(925);
+  const hills = [], nh = 3 + Math.round(w * h / 200000);
+  for (let i = 0; i < nh; i++) hills.push({ x:rnd() * w, y:rnd() * h, s:80 + rnd() * 170, a:(0.5 + rnd() * 0.9) * (rnd() < 0.25 ? -1 : 1) });
+  const G = 12, cols = Math.ceil(w / G) + 3, rows = Math.ceil(h / G) + 3, F = new Float32Array(cols * rows);
+  let lo = Infinity, hi = -Infinity;
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const px = i * G - G, py = j * G - G;
+    let v = 0.06 * Math.sin(px / 90 + 1) * Math.cos(py / 70);
+    for (const k of hills) { const dx = px - k.x, dy = py - k.y; v += k.a * Math.exp(-(dx * dx + dy * dy) / (2 * k.s * k.s)); }
+    F[j * cols + i] = v; if (v < lo) lo = v; if (v > hi) hi = v;
+  }
+  const STEP = 0.1;
+  for (let L = Math.ceil(lo / STEP); L * STEP <= hi; L++) {
+    if (L === 0) continue;
+    const lv = L * STEP;
+    g.beginPath();
+    for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) {
+      const a = F[j * cols + i], b = F[j * cols + i + 1], c = F[(j + 1) * cols + i + 1], d = F[(j + 1) * cols + i];
+      const X = i * G - G, Y = j * G - G, p = [];
+      if ((a < lv) !== (b < lv)) p.push(X + G * (lv - a) / (b - a), Y);
+      if ((b < lv) !== (c < lv)) p.push(X + G, Y + G * (lv - b) / (c - b));
+      if ((d < lv) !== (c < lv)) p.push(X + G * (lv - d) / (c - d), Y + G);
+      if ((a < lv) !== (d < lv)) p.push(X, Y + G * (lv - a) / (d - a));
+      for (let q = 0; q + 3 < p.length; q += 4) { g.moveTo(p[q], p[q + 1]); g.lineTo(p[q + 2], p[q + 3]); }
+    }
+    const index = L % 5 === 0;   // 每五条一条粗的“计曲线”
+    g.strokeStyle = index ? 'rgba(184,103,31,.42)' : 'rgba(184,103,31,.26)';
+    g.lineWidth = index ? 2.2 : 1.1;
+    g.lineCap = 'round';
+    g.stroke();
+  }
+  g.strokeStyle = 'rgba(21,131,184,.24)'; g.fillStyle = 'rgba(21,131,184,.34)'; g.lineWidth = 1.5;
+  for (let X = (w % 170) / 2 + 24; X < w; X += 170) {
+    g.beginPath(); g.moveTo(X, 0); g.lineTo(X, h); g.stroke();
+    g.beginPath(); g.moveTo(X, 8); g.lineTo(X + 6, 22); g.lineTo(X - 6, 22); g.closePath(); g.fill();
+  }
+}
+let bgT = 0;
+addEventListener('resize', () => { clearTimeout(bgT); bgT = setTimeout(drawBg, 180); });
+
+/* =========================== 首页：指南针 =========================== */
+const polar = (a, r) => { const t = a * Math.PI / 180; return [r * Math.sin(t), -r * Math.cos(t)]; };
+const f1 = n => +n.toFixed(1);
+const pt = (a, r) => polar(a, r).map(f1).join(' ');
+let selDir = 'N';
+
+function buildRose() {
+  let h = '<circle r="200" class="rz-bezel"/><circle r="177" class="rz-face"/>';
+  for (let a = 5; a < 360; a += 5) {
+    const big = a % 45 === 0, mid = a % 15 === 0;
+    const [x1, y1] = polar(a, 199), [x2, y2] = polar(a, big ? 181 : mid ? 187 : 192);
+    h += `<line x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" class="rz-tick${big ? ' big' : ''}"/>`;
+  }
+  h += '<path class="rz-n" d="M0-200L9-181H-9Z"/>';
+  const group = (d, R, W, rl, main) => {
+    const X = D[d], a = X.ang, [cx, cy] = polar(a, rl);
+    const hy = main ? -13 : -9, fy = main ? 21 : 14;
+    return `<g class="rd${main ? ' main' : ''}" data-d="${d}" role="button" tabindex="0" aria-label="${X.zh} ${X.fi}">
+      <path class="arm-a" d="M0 0L${pt(a, R)}L${pt(a - 90, W)}Z"/><path class="arm-b" d="M0 0L${pt(a, R)}L${pt(a + 90, W)}Z"/>
+      <circle class="hit" cx="${f1(cx)}" cy="${f1(cy)}" r="${main ? 38 : 34}"/>
+      <text class="lab-han${main ? '' : ' sm'}" x="${f1(cx)}" y="${f1(cy + hy)}" text-anchor="middle" dominant-baseline="central">${X.zh}</text>
+      <text class="lab-fi${main ? '' : ' sm'}" x="${f1(cx)}" y="${f1(cy + fy)}" text-anchor="middle" dominant-baseline="central">${X.fi}</text>
+    </g>`;
+  };
+  for (const d of INTER) h += group(d, 70, 15, 122, false);
+  for (const d of MAIN) h += group(d, 102, 22, 140, true);
+  h += '<circle r="31" class="rz-hub"/><use href="#fox" x="-26" y="-28" width="52" height="52"/>';
+  $('#rose').innerHTML = h;
+}
+function selectDir(d, speak) {
+  selDir = d;
+  $$('#rose .rd').forEach(g => g.classList.toggle('sel', g.dataset.d === d));
+  renderInfo(d);
+  if (speak) { SFX.tap(); say(parts(D[d].zh, D[d].fi)); }
+}
+function renderInfo(d) {
+  const X = D[d], F = FACT[d];
+  const boxes = [...X.zh].map(ch => `<span class="tz">${ch}</span>`).join('');
+  $('#info').innerHTML = `
+    <div class="info-head">
+      <div class="tzg" aria-hidden="true">${boxes}</div>
+      <div class="info-words">
+        <p class="i-py">${X.zh} · ${X.py}</p>
+        <p class="i-fi" lang="fi">${X.fi}</p>
+        <div class="i-spk">
+          <button type="button" class="chip" data-say="zh">${SPK}中文</button>
+          <button type="button" class="chip" data-say="fi">${SPK}Suomi</button>
+        </div>
+      </div>
+    </div>
+    <p class="i-cmd"><span class="han">向${X.zh}走</span><span class="dotsep">·</span><span lang="fi">Mene ${X.ill}!</span></p>
+    <p class="i-fact han">${F.zh}</p>
+    <p class="i-fact" lang="fi">${F.fi}</p>
+    ${F.funZh ? `<p class="i-fun"><svg viewBox="0 0 40 40" aria-hidden="true"><use href="#flag" width="40" height="40"/></svg><span>${F.funZh}<br><span lang="fi">${F.funFi}</span></span></p>` : ''}
+    <button type="button" class="chip wide" data-say="fact">${SPK}听句子 · <span lang="fi">Kuuntele lauseet</span></button>`;
+}
+$('#rose').addEventListener('click', e => { const g = e.target.closest('.rd'); if (g) selectDir(g.dataset.d, true); });
+$('#rose').addEventListener('keydown', e => {
+  const g = e.target.closest('.rd'); if (!g) return;
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectDir(g.dataset.d, true); }
+});
+$('#info').addEventListener('click', e => {
+  const b = e.target.closest('[data-say]'); if (!b) return;
+  const X = D[selDir], F = FACT[selDir], k = b.dataset.say;
+  if (k === 'zh') say([{ t:X.zh, l:'zh' }]);
+  else if (k === 'fi') say([{ t:X.fi, l:'fi' }]);
+  else say(parts(`向${X.zh}走。` + F.zh, `Mene ${X.ill}! ` + F.fi));
+});
+$('#rhyme').addEventListener('click', () => say(parts('上北，下南，左西，右东。', 'Kartalla pohjoinen on ylhäällä, etelä alhaalla, länsi vasemmalla ja itä oikealla.')));
+
+/* =========================== 首页：设置和游戏列表 =========================== */
+function setLang(l) {
+  store.lang = l; save();
+  document.body.dataset.lang = l;
+  $$('#lang button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.lang === l)));
+}
+$('#lang').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  setLang(b.dataset.lang); SFX.tap();
+  const X = D[selDir];
+  say(parts(X.zh, X.fi));
+});
+function syncToggles() {
+  $('#tg-voice').setAttribute('aria-pressed', String(store.voice));
+  $('#tg-sfx').setAttribute('aria-pressed', String(store.sfx));
+}
+$('#tg-voice').addEventListener('click', () => { store.voice = !store.voice; save(); syncToggles(); if (!store.voice) hush(); });
+$('#tg-sfx').addEventListener('click', () => { store.sfx = !store.sfx; save(); syncToggles(); SFX.tap(); });
+let resetArm = 0;
+$('#reset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!resetArm) {
+    b.classList.add('warn'); b.innerHTML = '确定吗？再按一次 <span lang="fi">Varmasti? Paina uudelleen</span>';
+    resetArm = setTimeout(() => { resetArm = 0; b.classList.remove('warn'); b.innerHTML = '清除星星 <span lang="fi">Nollaa tähdet</span>'; }, 3500);
+    return;
+  }
+  clearTimeout(resetArm); resetArm = 0;
+  store.stars = {}; save(); renderGames();
+  b.classList.remove('warn'); b.innerHTML = '星星已清除 <span lang="fi">Tähdet nollattu</span>';
+});
+
+const ICONS = {
+  g1:'<svg viewBox="0 0 44 44" fill="none" stroke="#b3179b" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"><path d="M9 25l6.5 11h-13z"/><path d="M12.5 24.5L19.5 16"/><circle cx="24" cy="12" r="6"/><path d="M27 17.5L31 25"/><circle cx="33" cy="30.5" r="4"/><circle cx="33" cy="30.5" r="7.5"/></svg>',
+  g2:'<svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="#ffe6a1" stroke="#1c1b22" stroke-width="2.4" stroke-dasharray=".5 4.5" stroke-linecap="round"/><g fill="none" stroke="#b3179b" stroke-width="2.4"><circle cx="22" cy="10" r="4"/><circle cx="34" cy="22" r="4"/><circle cx="22" cy="34" r="4"/><circle cx="10" cy="22" r="4"/></g><circle cx="34" cy="22" r="4" fill="#b3179b"/><circle cx="22" cy="22" r="4.5" fill="#f47b2a" stroke="#1c1b22" stroke-width="1.8"/></svg>',
+  g3:'<svg viewBox="0 0 44 44"><g transform="rotate(-10 15 23)"><rect x="4" y="10" width="20" height="26" rx="3" fill="#fff" stroke="#1c1b22" stroke-width="2.2"/><text x="14" y="28.5" text-anchor="middle" font-family="KaiTi,STKaiti,Noto Serif SC,serif" font-size="15" fill="#1c1b22">北</text></g><g transform="rotate(9 30 21)"><rect x="20" y="8" width="20" height="26" rx="3" fill="#fff" stroke="#1c1b22" stroke-width="2.2"/><path d="M40 8v26H20z" fill="#f26a1b"/><rect x="20" y="8" width="20" height="26" rx="3" fill="none" stroke="#1c1b22" stroke-width="2.2"/></g></svg>',
+};
+const GAMES = [
+  { id:'g1', zh:'小狐狸回家', fi:'Kettu kotiin', tint:'t-open', levels:G1LV, start:lv => g1Start(lv),
+    desc:'听口令，按对方向，小狐狸就跳一格。找到两面旗子，再走回家。', descFi:'Kuuntele ja paina oikeaa suuntaa. Kettu etsii rastit ja menee kotiin.' },
+  { id:'g2', zh:'小动物在哪边', fi:'Missä eläin on?', tint:'t-veg', levels:G2LV, start:lv => g2Start(lv),
+    desc:'森林里跳出一只小动物。它在狐狸的哪一边？', descFi:'Metsästä hyppää eläin. Missä suunnassa se on?' },
+  { id:'g3', zh:'翻牌配对', fi:'Muistipeli', tint:'t-water', levels:G3LV, start:lv => g3Start(lv),
+    desc:'翻开卡片，把中文和芬兰语的同一个方向配成一对。', descFi:'Käännä kortit ja etsi parit: kiina ja suomi.' },
+];
+const starRow = n => [1, 2, 3].map(i => `<span class="st${i <= n ? '' : ' off'}">★</span>`).join('');
+function renderGames() {
+  $('#game-list').innerHTML = GAMES.map(g => `
+    <article class="game">
+      <div class="game-head">
+        <div class="g-ico ${g.tint}" aria-hidden="true">${ICONS[g.id]}</div>
+        <div><h3>${g.zh}</h3><p class="g-fi" lang="fi">${g.fi}</p></div>
+      </div>
+      <p class="g-desc">${g.desc}<span lang="fi">${g.descFi}</span></p>
+      <div class="levels">
+        ${g.levels.map((L, i) => {
+          const s = store.stars[g.id + '-' + i] | 0;
+          return `<button type="button" class="lv" data-g="${g.id}" data-lv="${i}" aria-label="${g.zh} 第${i + 1}关 ${L.zh}，${s} 颗星">
+            <span class="lv-n">${i + 1}</span>
+            <span class="lv-t">${L.zh}<small lang="fi">${L.fi}</small></span>
+            <span class="lv-s" aria-hidden="true">${starRow(s)}</span></button>`;
+        }).join('')}
+      </div>
+    </article>`).join('');
+  const max = GAMES.reduce((s, g) => s + g.levels.length * 3, 0);
+  const got = GAMES.reduce((s, g) => s + g.levels.reduce((t, L, i) => t + (store.stars[g.id + '-' + i] | 0), 0), 0);
+  $('#total').innerHTML = `<b>★</b> ${got} / ${max}`;
+}
+$('#game-list').addEventListener('click', e => {
+  const b = e.target.closest('.lv'); if (!b) return;
+  SFX.tap();
+  GAMES.find(g => g.id === b.dataset.g).start(+b.dataset.lv);
+});
+
+/* =========================== 画面切换 =========================== */
+let runSeq = 0, homeY = 0, current = 'home';
+function show(id) {
+  if (current === 'home' && id !== 'home') homeY = scrollY;
+  current = id;
+  $$('.screen').forEach(s => { s.hidden = s.id !== id; });
+  document.body.classList.toggle('playing', id !== 'home');
+  $('#done').hidden = true;
+  if (id === 'home') { renderGames(); requestAnimationFrame(() => scrollTo(0, homeY)); setTimeout(() => scrollTo(0, homeY), 30); }
+}
+function goHome() { runSeq++; hush(); show('home'); }
+$$('[data-back]').forEach(b => b.addEventListener('click', goHome));
+
+let doneAgain = null, doneNext = null;
+function showDone({ zh, fi, stars, stat, again, next }) {
+  $('#done-t').innerHTML = `${zh}<span lang="fi">${fi}</span>`;
+  $('#done-stars').innerHTML = [1, 2, 3].map(i => `<span class="st${i <= stars ? '' : ' off'}" style="animation-delay:${i * 140}ms">★</span>`).join('');
+  $('#done-stars').setAttribute('aria-label', stars + ' 颗星 · ' + stars + ' tähteä');
+  $('#done-stat').textContent = stat;
+  doneAgain = again; doneNext = next;
+  $('#done-next').hidden = !next;
+  $('#done').hidden = false;
+  ($('#done-next').hidden ? $('#done-again') : $('#done-next')).focus();
+}
+$('#done-home').addEventListener('click', goHome);
+$('#done-again').addEventListener('click', () => { $('#done').hidden = true; doneAgain && doneAgain(); });
+$('#done-next').addEventListener('click', () => { $('#done').hidden = true; doneNext && doneNext(); });
+
+function confetti() {
+  if (reduced) return;
+  const box = $('#confetti');
+  const kinds = ['flag', 'ring', 'dot'];
+  for (let i = 0; i < 48; i++) {
+    const p = document.createElement('i');
+    p.className = 'cf ' + kinds[i % 3];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.setProperty('--dx', (Math.random() * 140 - 70) + 'px');
+    p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+    p.style.animationDuration = (1.8 + Math.random() * 1.4) + 's';
+    p.style.animationDelay = (Math.random() * 0.4) + 's';
+    box.append(p);
+  }
+  setTimeout(() => box.replaceChildren(), 3800);
+}
+function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+const starsFor = miss => miss <= 1 ? 3 : miss <= 3 ? 2 : 1;
+const CN = ['一', '二', '三', '四'];
+
+/* =========================== 游戏一：小狐狸回家 =========================== */
+const C = 100, N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+let g1 = null;
+const key = (x, y) => x + ',' + y;
+const inb = (x, y, n) => x >= 0 && y >= 0 && x < n && y < n;
+
+function walk(n, len, dirs, blocked) {
+  for (let t = 0; t < 80; t++) {
+    let x = rint(n), y = rint(n);
+    if (blocked.has(key(x, y))) continue;
+    const path = [[x, y]], seen = new Set([key(x, y)]), moves = [];
+    for (let i = 0; i < len; i++) {
+      const k = moves.length;
+      const opts = dirs.filter(d => {
+        const nx = x + D[d].dx, ny = y + D[d].dy;
+        if (!inb(nx, ny, n) || blocked.has(key(nx, ny)) || seen.has(key(nx, ny))) return false;
+        return !(k >= 2 && moves[k - 1] === d && moves[k - 2] === d);
+      });
+      if (!opts.length) break;
+      let d = pick(opts);
+      if (k && d === moves[k - 1] && opts.length > 1 && Math.random() < 0.6) d = pick(opts.filter(o => o !== d));
+      x += D[d].dx; y += D[d].dy;
+      path.push([x, y]); seen.add(key(x, y)); moves.push(d);
+    }
+    if (moves.length < len) continue;
+    const distinct = new Set(moves).size;
+    if (dirs.length === 4 && distinct < 4) continue;
+    if (dirs.length === 8 && (moves.filter(m => m.length === 2).length < 3 || distinct < 5)) continue;
+    return { path, moves };
+  }
+  return null;
+}
+function grow(n, seeds, size, jit) {
+  const out = [];
+  for (let s = 0; s < seeds; s++) {
+    const blob = [[rint(n), rint(n)]];
+    for (let t = 0; blob.length < size && t < 40; t++) {
+      const [bx, by] = pick(blob), [dx, dy] = pick(N4), nx = bx + dx, ny = by + dy;
+      if (inb(nx, ny, n) && !blob.some(b => b[0] === nx && b[1] === ny)) blob.push([nx, ny]);
+    }
+    out.push(...blob);
+  }
+  return out.map(([x, y]) => [(x + 0.5) * C + (Math.random() - 0.5) * jit, (y + 0.5) * C + (Math.random() - 0.5) * jit]);
+}
+function g1Gen(cfg) {
+  const n = cfg.n;
+  for (let t = 0; t < 300; t++) {
+    const lake = [[rint(n), rint(n)]], size = 2 + rint(2);
+    for (let k = 0; lake.length < size && k < 30; k++) {
+      const [bx, by] = pick(lake), [dx, dy] = pick(N4), nx = bx + dx, ny = by + dy;
+      if (inb(nx, ny, n) && !lake.some(c => c[0] === nx && c[1] === ny)) lake.push([nx, ny]);
+    }
+    const blocked = new Set(lake.map(c => key(c[0], c[1])));
+    const res = walk(n, cfg.len, cfg.dirs, blocked);
+    if (!res) continue;
+    const onPath = new Set(res.path.map(c => key(c[0], c[1])));
+    const free = [];
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!onPath.has(key(x, y)) && !blocked.has(key(x, y))) free.push([x, y]);
+    const rocks = shuffle(free).slice(0, 3).map(([x, y]) => [(x + 0.5) * C + (Math.random() - 0.5) * 50, (y + 0.5) * C + (Math.random() - 0.5) * 50]);
+    const W = n * C;
+    const hill = { cx:W * (0.2 + Math.random() * 0.6), cy:W * (0.2 + Math.random() * 0.6), p1:Math.random() * 6, p2:Math.random() * 6, a1:0.1 + Math.random() * 0.08, a2:0.05 + Math.random() * 0.05 };
+    return {
+      n, lake, ...res,
+      deco:{ open:grow(n, 2, 4, 36), veg:grow(n, 2, 3, 30), veg2:grow(n, 1, 2, 20), rocks, hill },
+    };
+  }
+  return null;
+}
+function g1Render() {
+  const { n, lake, deco } = g1, W = n * C;
+  const svg = $('#g1-map');
+  svg.setAttribute('viewBox', `0 0 ${W} ${W}`);
+  const circ = (p, r, cls) => `<circle class="${cls}" cx="${f1(p[0])}" cy="${f1(p[1])}" r="${r}"/>`;
+  let h = `<rect width="${W}" height="${W}" class="m-white"/>`;
+  h += deco.open.map(p => circ(p, 70, 'm-open')).join('');
+  h += deco.veg.map(p => circ(p, 60, 'm-veg')).join('');
+  h += deco.veg2.map(p => circ(p, 38, 'm-veg2')).join('');
+  const H = deco.hill;
+  for (let k = 1; k <= 4; k++) {
+    const R = 24 + k * 50;
+    let d = '';
+    for (let i = 0; i <= 72; i++) {
+      const t = i / 72 * Math.PI * 2, r = R * (1 + H.a1 * Math.sin(2 * t + H.p1) + H.a2 * Math.sin(3 * t + H.p2));
+      d += (i ? 'L' : 'M') + f1(H.cx + r * Math.cos(t)) + ' ' + f1(H.cy + r * Math.sin(t));
+    }
+    h += `<path class="m-ct${k === 4 ? ' idx' : ''}" d="${d}Z"/>`;
+  }
+  const lk = lake.map(([x, y]) => [(x + 0.5) * C, (y + 0.5) * C]);
+  h += lk.map(p => circ(p, 67, 'm-lake-edge')).join('') + lk.map(p => circ(p, 61, 'm-lake')).join('');
+  for (const fx of [0.2, 0.55, 0.88]) {
+    const x = f1(W * fx - C * 0.08);
+    h += `<line class="m-north" x1="${x}" y1="${W}" x2="${x}" y2="18"/><path class="m-north-h" d="M${x} 2L${x + 9} 24H${x - 9}Z"/>`;
+  }
+  h += deco.rocks.map(p => circ(p, 7, 'm-rock')).join('');
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) h += circ([(x + 0.5) * C, (y + 0.5) * C], 4, 'm-dot');
+  h += '<g id="g1-course"></g>';
+  svg.innerHTML = h;
+}
+function g1Course() {
+  const P = g1.path.map(([x, y]) => [(x + 0.5) * C, (y + 0.5) * C]), W = g1.n * C;
+  let h = '';
+  if (g1.step > 0) h += `<polyline class="c-line" points="${P.slice(0, g1.step + 1).map(p => p.join(',')).join(' ')}"/>`;
+  const a0 = D[g1.moves[0]].ang, [sx, sy] = P[0];
+  h += `<path class="c-sym" d="M${[0, 120, 240].map(k => { const [x, y] = polar(a0 + k, 36); return f1(sx + x) + ' ' + f1(sy + y); }).join('L')}Z"/>`;
+  g1.ctrl.forEach(s => {
+    const [x, y] = P[s];
+    h += `<circle class="c-sym" cx="${x}" cy="${y}" r="35"/>`;
+    if (g1.step < s) h += `<use href="#flag" x="${x - 18}" y="${y - 18}" width="36" height="36"/>`;
+  });
+  const [fx, fy] = P[P.length - 1];
+  h += `<circle class="c-sym" cx="${fx}" cy="${fy}" r="27"/><circle class="c-sym" cx="${fx}" cy="${fy}" r="40"/>`;
+  if (g1.step < P.length - 1) h += `<text class="m-home" x="${fx}" y="${fy + 2}" text-anchor="middle" dominant-baseline="central">🏠</text>`;
+  // 编号放在离路线最远的一角，免得被别的圈挡住
+  const OFF = [[46, -34], [-46, -34], [46, 62], [-46, 62], [0, -48], [0, 76]];
+  g1.ctrl.forEach((s, i) => {
+    const [x, y] = P[s];
+    let best = [x + 46, y - 34], bs = -1;
+    for (const [ox, oy] of OFF) {
+      const tx = x + ox, ty = y + oy;
+      if (tx < 20 || tx > W - 20 || ty < 36 || ty > W - 8) continue;
+      const sc = Math.min(...P.map(p => Math.hypot(p[0] - tx, p[1] - (ty - 12))));
+      if (sc > bs) { bs = sc; best = [tx, ty]; }
+    }
+    h += `<text class="c-num" x="${best[0]}" y="${best[1]}" text-anchor="middle">${i + 1}</text>`;
+  });
+  $('#g1-course').innerHTML = h;
+}
+function g1Hud() {
+  const flag = '<svg viewBox="0 0 40 40"><use href="#flag" width="40" height="40"/></svg>';
+  const done = g1.step >= g1.moves.length;
+  $('#g1-hud').innerHTML = g1.ctrl.map((s, i) => `<span class="hud-i${g1.step >= s ? ' got' : ''}" title="${i + 1}">${flag}</span>`).join('') +
+    `<span class="hud-i${done ? ' got' : ''}">🏠</span>`;
+}
+function placeFox(x, y, anim) {
+  const f = $('#g1-fox');
+  if (!anim) f.classList.add('jump');
+  f.style.width = (74 / g1.n) + '%';
+  f.style.left = ((x + 0.5) / g1.n * 100) + '%';
+  f.style.top = ((y + 0.5) / g1.n * 100) + '%';
+  if (anim) replay(f.firstElementChild, 'hop');
+  else { void f.offsetWidth; f.classList.remove('jump'); }
+}
+const PAD = ['NW', 'N', 'NE', 'W', null, 'E', 'SW', 'S', 'SE'];
+function buildPad(cfg) {
+  const pad = $('#g1-pad');
+  pad.classList.toggle('nolabel', !cfg.labels);
+  pad.innerHTML = PAD.map(d => {
+    if (!d) return `<button type="button" class="pc" id="g1-replay" aria-label="再听一次 Kuuntele uudelleen">${SPK}<small>再听</small></button>`;
+    const X = D[d], on = cfg.dirs.includes(d);
+    return `<button type="button" class="pb${on ? '' : ' off'}" data-d="${d}" ${on ? '' : 'tabindex="-1" aria-hidden="true"'} aria-label="${X.zh} ${X.fi}">
+      <svg class="arr" viewBox="-10 -10 20 20" style="left:${50 + 38 * X.dx}%;top:${50 + 38 * X.dy}%;transform:translate(-50%,-50%) rotate(${X.ang}deg)">${ARROW}</svg>
+      <span class="L-zh han${X.zh.length > 1 ? ' two' : ''}">${X.zh}</span><span class="L-zh py">${X.py}</span><span class="L-fi fiw" lang="fi">${X.fi}</span></button>`;
+  }).join('');
+}
+const cmdParts = d => parts(`向${D[d].zh}走`, `Mene ${D[d].ill}!`);
+function g1Bubble(d) {
+  const X = D[d];
+  $('#g1-bubble').innerHTML =
+    `<div class="L-zh"><span class="han">向<em>${X.zh}</em>走</span><span class="b-py">xiàng ${X.py} zǒu</span></div>` +
+    `<div class="L-fi b-fi" lang="fi">Mene <em>${X.ill}</em>!</div>`;
+}
+function g1Start(lv) {
+  const cfg = G1LV[lv], gen = g1Gen(cfg);
+  if (!gen) return;
+  g1 = { lv, cfg, ...gen, step:0, miss:0, missStep:0, busy:false, over:false, run:++runSeq };
+  g1.ctrl = [Math.round(cfg.len / 3), Math.round(cfg.len * 2 / 3)];
+  hush();
+  $('#g1-lv').textContent = `Kettu kotiin · 第${lv + 1}关 · ${cfg.zh} · ${cfg.fi}`;
+  buildPad(cfg);
+  g1Render(); g1Course(); g1Hud();
+  show('g1');
+  placeFox(g1.path[0][0], g1.path[0][1], false);
+  g1Bubble(g1.moves[0]);
+  say(cmdParts(g1.moves[0]));
+}
+function g1Tap(d, btn) {
+  if (!g1 || g1.busy || g1.over) return;
+  const want = g1.moves[g1.step], run = g1.run;
+  if (d === want) {
+    g1.busy = true; g1.missStep = 0;
+    SFX.hop();
+    $$('#g1-pad .hint').forEach(b => b.classList.remove('hint'));
+    g1.step++;
+    const [x, y] = g1.path[g1.step];
+    placeFox(x, y, true);
+    g1Course();
+    setTimeout(() => {
+      if (run !== runSeq) return;
+      g1Hud();
+      if (g1.step === g1.moves.length) return g1Finish();
+      const next = g1.moves[g1.step], ci = g1.ctrl.indexOf(g1.step);
+      g1Bubble(next);
+      if (ci >= 0) { SFX.flag(); say([...parts(`找到第${CN[ci]}面旗子！`, `Rasti ${ci + 1} löytyi!`), ...cmdParts(next)]); }
+      else say(cmdParts(next));
+      g1.busy = false;
+    }, 360);
+  } else {
+    g1.miss++; g1.missStep++;
+    SFX.bad();
+    if (btn) replay(btn, 'shake');
+    replay($('#g1-fox').firstElementChild, 'no');
+    if (g1.missStep >= 2) $(`#g1-pad .pb[data-d="${want}"]`).classList.add('hint');
+    setTimeout(() => { if (run === runSeq && !g1.busy) say(cmdParts(want)); }, 320);
+  }
+}
+function g1Finish() {
+  g1.over = true;
+  const stars = starsFor(g1.miss), lv = g1.lv, run = g1.run;
+  saveStars('g1-' + lv, stars);
+  $('#g1-bubble').innerHTML = '<div class="L-zh"><span class="han">到家啦！</span></div><div class="L-fi b-fi" lang="fi">Kettu on kotona!</div>';
+  SFX.win(); confetti();
+  say(parts('到家啦！', 'Kettu on kotona!'));
+  setTimeout(() => {
+    if (run !== runSeq) return;
+    showDone({ zh:'到家啦！', fi:'Kotona!', stars, stat:`按错 ${g1.miss} 次 · Virheitä: ${g1.miss}`,
+      again:() => g1Start(lv), next:lv + 1 < G1LV.length ? () => g1Start(lv + 1) : null });
+  }, 1500);
+}
+$('#g1-pad').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !g1) return;
+  if (b.id === 'g1-replay') { if (!g1.over) say(cmdParts(g1.moves[g1.step])); return; }
+  if (b.dataset.d) g1Tap(b.dataset.d, b);
+});
+$('#g1-bubble').addEventListener('click', () => { if (g1 && !g1.over) say(cmdParts(g1.moves[g1.step])); });
+
+/* =========================== 游戏二：小动物在哪边 =========================== */
+let g2 = null;
+function g2Scene(dirs) {
+  let h = '<circle r="200" class="s-veg"/>';
+  for (let i = 0; i < 14; i++) { const [x, y] = polar(14 + i * 25, 184 + (i % 2) * 7); h += `<circle class="s-tree" cx="${f1(x)}" cy="${f1(y)}" r="7"/>`; }
+  h += '<circle r="170" class="s-open"/><circle r="170" class="s-edge"/>';
+  h += '<line class="s-north" x1="0" y1="168" x2="0" y2="-180"/><path class="s-north-h" d="M0-203L13-176H-13Z"/><text class="s-n" x="30" y="-183" text-anchor="middle" dominant-baseline="central">N</text>';
+  for (const d of ALL) {
+    const [x, y] = polar(D[d].ang, 130);
+    h += dirs.includes(d) ? `<circle class="s-spot" cx="${f1(x)}" cy="${f1(y)}" r="26"/>` : `<circle class="s-dot" cx="${f1(x)}" cy="${f1(y)}" r="5"/>`;
+  }
+  $('#g2-svg').innerHTML = h;
+}
+// 转过的地图上，某个方向在屏幕上的位置（百分比）
+function spotPos(d) {
+  const a = D[d].ang + g2.rot, [x, y] = polar(a, 130 / 410 * 100);
+  return [50 + x, 50 + y];
+}
+function g2Dots() {
+  $('#g2-dots').innerHTML = Array.from({ length:g2.total }, (_, i) => `<i class="${i < g2.q - 1 ? 'done' : i === g2.q - 1 ? 'now' : ''}"></i>`).join('');
+}
+function g2Start(lv) {
+  const cfg = G2LV[lv];
+  g2 = { lv, cfg, q:0, total:8, miss:0, bag:[], prevD:null, prevItem:null, cur:null, item:null, rot:0, lock:true, run:++runSeq };
+  hush();
+  $('#g2-lv').textContent = `Missä eläin on? · 第${lv + 1}关 · ${cfg.zh} · ${cfg.fi}`;
+  const r = $('#g2-rot');
+  r.style.transition = 'none'; r.style.transform = 'rotate(0deg)'; void r.offsetWidth; r.style.transition = '';
+  g2Scene(cfg.dirs);
+  $('#g2-item').className = 'item';
+  $('#g2-ans').innerHTML = '';
+  show('g2');
+  g2Next(true);
+}
+function g2Ask() {
+  const it = g2.item;
+  say(parts(`${it.zh}在哪边？`, `Missä ${it.fi} on?`));
+}
+function g2Next(first) {
+  if (g2.q >= g2.total) return g2Finish();
+  g2.q++; g2.lock = true; g2Dots();
+  if (!g2.bag.length) g2.bag = shuffle(g2.cfg.dirs.slice());
+  let d = g2.bag.pop();
+  if (d === g2.prevD && g2.bag.length) { const t = d; d = g2.bag.pop(); g2.bag.unshift(t); }
+  const it = pick(ITEMS.filter(x => x !== g2.prevItem));
+  g2.cur = d; g2.prevD = d; g2.item = it; g2.prevItem = it;
+  const item = $('#g2-item');
+  item.className = 'item';
+  let delay = first ? 250 : 120;
+  if (g2.cfg.rotate) {
+    g2.rot += pick([90, -90, 180]);
+    $('#g2-rot').style.transform = `rotate(${g2.rot}deg)`;
+    delay = reduced ? 60 : 850;
+  }
+  $('#g2-bubble').innerHTML = `<div class="q-row"><span class="q-emo" aria-hidden="true">${it.e}</span><div>` +
+    `<div class="L-zh"><span class="han">${it.zh}在哪边？</span></div><div class="L-fi b-fi" lang="fi">Missä ${it.fi} on?</div></div></div>` +
+    (g2.cfg.rotate ? '<p class="q-tip">蓝色箭头指着北。 <span lang="fi">Sininen nuoli näyttää pohjoisen.</span></p>' : '');
+  let opts;
+  if (g2.cfg.dirs.length === 4) opts = shuffle(g2.cfg.dirs.slice());
+  else {
+    const i = ALL.indexOf(d), near = [ALL[(i + 1) % 8], ALL[(i + 7) % 8]];
+    const n1 = pick(near), rest = shuffle(ALL.filter(x => x !== d && x !== n1)).slice(0, 2);
+    opts = shuffle([d, n1, ...rest]);
+  }
+  $('#g2-ans').innerHTML = opts.map((o, i) => {
+    const X = D[o];
+    return `<button type="button" class="ans" data-d="${o}" aria-label="${i + 1}: ${X.zh} ${X.fi}"><span class="L-zh han">${X.zh}</span><span class="L-zh py">${X.py}</span><span class="L-fi fiw" lang="fi">${X.fi}</span></button>`;
+  }).join('');
+  const run = g2.run;
+  setTimeout(() => {
+    if (run !== runSeq) return;
+    const [x, y] = spotPos(d);
+    item.textContent = it.e;
+    item.style.left = x + '%'; item.style.top = y + '%';
+    void item.offsetWidth;
+    item.classList.add('show');
+    SFX.tap();
+    g2.lock = false;
+    g2Ask();
+  }, delay);
+}
+function g2Ghost(d) {
+  const g = document.createElement('div'), [x, y] = spotPos(d);
+  g.className = 'ghost';
+  g.innerHTML = `<span class="L-zh han">${D[d].zh}</span><span class="L-fi" lang="fi">${D[d].fi}</span>`;
+  g.style.left = x + '%'; g.style.top = y + '%';
+  $('#g2-clear').append(g);
+  setTimeout(() => g.remove(), 1600);
+}
+async function g2Answer(d, btn) {
+  if (!g2 || g2.lock || btn.disabled) return;
+  const run = g2.run;
+  if (d === g2.cur) {
+    g2.lock = true;
+    btn.classList.add('ok');
+    $$('#g2-ans .ans').forEach(b => { b.disabled = true; });
+    SFX.good();
+    replay($('#g2-item'), 'bounce');
+    replay($('#g2-fox'), 'happy');
+    const it = g2.item, X = D[d];
+    $('#g2-bubble').innerHTML = `<div class="q-row"><span class="q-emo" aria-hidden="true">${it.e}</span><div>` +
+      `<div class="L-zh"><span class="han">${it.zh}在<em>${X.zh}</em>边。</span></div><div class="L-fi b-fi" lang="fi">${cap(it.fi)} on <em>${X.ine}</em>.</div></div></div>`;
+    await Promise.all([say(parts(`${it.zh}在${X.zh}边。`, `${cap(it.fi)} on ${X.ine}.`)), wait(1300)]);
+    if (run !== runSeq) return;
+    await wait(250);
+    if (run !== runSeq) return;
+    g2Next(false);
+  } else {
+    g2.miss++;
+    SFX.bad();
+    replay(btn, 'shake');
+    btn.classList.add('no'); btn.disabled = true;
+    g2Ghost(d);
+    say(parts(D[d].zh, D[d].fi));
+  }
+}
+function g2Finish() {
+  const stars = starsFor(g2.miss), lv = g2.lv, run = g2.run;
+  saveStars('g2-' + lv, stars);
+  SFX.win(); confetti();
+  say(parts('真棒！', 'Hienoa!'));
+  setTimeout(() => {
+    if (run !== runSeq) return;
+    showDone({ zh:'真棒！', fi:'Hienoa!', stars, stat:`选错 ${g2.miss} 次 · Virheitä: ${g2.miss}`,
+      again:() => g2Start(lv), next:lv + 1 < G2LV.length ? () => g2Start(lv + 1) : null });
+  }, 900);
+}
+$('#g2-ans').addEventListener('click', e => { const b = e.target.closest('.ans'); if (b) g2Answer(b.dataset.d, b); });
+$('#g2-bubble').addEventListener('click', () => { if (g2 && !g2.lock) g2Ask(); });
+
+/* =========================== 游戏三：翻牌配对 =========================== */
+let g3 = null;
+function g3Stat() {
+  $('#g3-stat').innerHTML = `${g3.pairs}/${g3.cfg.dirs.length} <small>对 · paria</small> · ${g3.moves} <small>次 · siirtoa</small>`;
+}
+function g3Start(lv) {
+  const cfg = G3LV[lv];
+  const cards = shuffle(cfg.dirs.flatMap(d => [{ d, k:'zh' }, { d, k:'fi' }]));
+  g3 = { lv, cfg, cards, open:[], pairs:0, moves:0, lock:false, run:++runSeq };
+  hush();
+  $('#g3-lv').textContent = `Muistipeli · 第${lv + 1}关 · ${cfg.zh} · ${cfg.fi}`;
+  const grid = $('#g3-grid');
+  grid.style.setProperty('--c', 4);
+  grid.style.setProperty('--r', cards.length / 4);
+  grid.innerHTML = cards.map((c, i) => {
+    const X = D[c.d];
+    const face = c.k === 'zh'
+      ? `<span class="han${X.zh.length > 1 ? ' two' : ''}">${X.zh}</span><span class="py">${X.py}</span>`
+      : `<span class="fiw" lang="fi">${X.fi}</span>`;
+    return `<button type="button" class="card" data-i="${i}" aria-label="卡片 ${31 + i}"><span class="card-in">` +
+      `<span class="face f-back" aria-hidden="true"><span class="code">${31 + i}</span></span>` +
+      `<span class="face f-front ${c.k}">${face}<svg class="arr" viewBox="-10 -10 20 20" style="transform:rotate(${X.ang}deg)" aria-hidden="true">${ARROW}</svg></span>` +
+      `</span></button>`;
+  }).join('');
+  g3Stat();
+  show('g3');
+}
+const cardWord = c => c.k === 'zh' ? D[c.d].zh : D[c.d].fi;
+function g3Tap(i, el) {
+  if (!g3 || g3.lock) return;
+  const c = g3.cards[i];
+  if (c.up || c.done) return;
+  c.up = true; el.classList.add('up');
+  el.setAttribute('aria-label', cardWord(c));
+  SFX.flip();
+  g3.open.push(i);
+  if (g3.open.length === 1) { say([{ t:cardWord(c), l:c.k }]); return; }
+  g3.moves++;
+  const [a, b] = g3.open.map(j => g3.cards[j]), els = g3.open.map(j => $(`#g3-grid .card[data-i="${j}"]`));
+  g3.open = [];
+  if (a.d === b.d) {
+    a.done = b.done = true; g3.pairs++;
+    els.forEach(e => e.classList.add('done'));
+    SFX.good();
+    say([{ t:D[a.d].zh, l:'zh' }, { t:D[a.d].fi, l:'fi' }]);
+    g3Stat();
+    if (g3.pairs === g3.cfg.dirs.length) {
+      const run = g3.run;
+      setTimeout(() => { if (run === runSeq) g3Finish(); }, 1500);
+    }
+  } else {
+    g3.lock = true;
+    say([{ t:cardWord(c), l:c.k }]);
+    g3Stat();
+    const run = g3.run;
+    setTimeout(() => {
+      if (run !== runSeq) return;
+      [a, b].forEach(x => { x.up = false; });
+      els.forEach(e => { e.classList.remove('up'); e.setAttribute('aria-label', '卡片 ' + (31 + +e.dataset.i)); });
+      g3.lock = false;
+    }, 1200);
+  }
+}
+function g3Finish() {
+  const p = g3.cfg.dirs.length, m = g3.moves, lv = g3.lv;
+  const stars = m <= p * 1.75 ? 3 : m <= p * 2.5 ? 2 : 1;
+  saveStars('g3-' + lv, stars);
+  SFX.win(); confetti();
+  say(parts('全部配对！', 'Kaikki parit löytyivät!'));
+  showDone({ zh:'全部配对！', fi:'Kaikki parit!', stars, stat:`翻了 ${m} 次 · Siirtoja: ${m}`,
+    again:() => g3Start(lv), next:lv + 1 < G3LV.length ? () => g3Start(lv + 1) : null });
+}
+$('#g3-grid').addEventListener('click', e => { const b = e.target.closest('.card'); if (b) g3Tap(+b.dataset.i, b); });
+
+/* =========================== 键盘 =========================== */
+const KEYS = { ArrowUp:'N', ArrowDown:'S', ArrowLeft:'W', ArrowRight:'E', Numpad8:'N', Numpad9:'NE', Numpad6:'E', Numpad3:'SE', Numpad2:'S', Numpad1:'SW', Numpad4:'W', Numpad7:'NW' };
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && current !== 'home') { goHome(); return; }
+  if (!$('#done').hidden) return;
+  if (current === 'g1' && KEYS[e.code] && g1 && g1.cfg.dirs.includes(KEYS[e.code])) {
+    e.preventDefault();
+    g1Tap(KEYS[e.code], $(`#g1-pad .pb[data-d="${KEYS[e.code]}"]`));
+  } else if (current === 'g2' && /^[1-4]$/.test(e.key)) {
+    const b = $$('#g2-ans .ans')[+e.key - 1];
+    if (b) g2Answer(b.dataset.d, b);
+  }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) hush(); });
+
+/* =========================== 开始 =========================== */
+setLang(store.lang);
+syncToggles();
+buildRose();
+selectDir('N', false);
+renderGames();
+updateVoiceNote();
+drawBg();
+})();
+</script>
+
+</body></html>

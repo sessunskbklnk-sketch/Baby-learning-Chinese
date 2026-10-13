@@ -1,0 +1,1442 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>汉字迷宫 Hanzi Maze</title>
+<style>
+  :root{
+    --ink:#17253c;
+    --panel:rgba(255,255,255,.88);
+    --line:rgba(23,37,60,.12);
+    --gold:#e29a12;
+    --green:#1f9d63;
+    --rose:#e2604a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden;background:#cfe3ef;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink); -webkit-font-smoothing:antialiased; user-select:none;
+  }
+  .hanzi{font-family:"KaiTi","STKaiti","Kaiti SC","Songti SC","SimSun","Microsoft YaHei","PingFang SC",serif;}
+  canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+  canvas#fx{position:fixed;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:6;}
+
+  /* ---------------- HUD ---------------- */
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .35s ease;z-index:4;}
+  #hud.on{opacity:1}
+
+  .pill{
+    display:flex;align-items:center;gap:8px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:8px 16px;
+    font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;
+    box-shadow:0 6px 18px rgba(20,40,70,.14);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  #statBar{position:absolute;top:16px;left:16px;display:flex;gap:10px;}
+
+  /* 任务卡 */
+  #quest{
+    position:absolute;top:16px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:14px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:18px;padding:10px 16px 10px 14px;
+    box-shadow:0 8px 26px rgba(20,40,70,.18);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  #quest .lab{font-size:11px;letter-spacing:.18em;font-weight:800;opacity:.45;writing-mode:vertical-rl;line-height:1}
+  #quest .emo{font-size:34px;line-height:1}
+  #quest .en{font-size:17px;font-weight:800}
+  #quest .py{font-size:13.5px;opacity:.6;font-weight:600;margin-top:1px}
+  #quest .hint{
+    width:46px;height:46px;border-radius:12px;background:#eef3f7;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;font-weight:700;color:#b9c6d3;
+  }
+  #quest .hint.show{background:#fff5dd;color:var(--ink)}
+  #quest .prog{
+    font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;
+    background:var(--green);color:#fff;border-radius:999px;padding:5px 12px;
+  }
+
+  #mapWrap{
+    position:absolute;top:16px;right:16px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;padding:10px 10px 6px;
+    box-shadow:0 8px 24px rgba(20,40,70,.16);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  #map{display:block;width:168px;height:168px;border-radius:9px;background:#e7eef4;}
+  #mapFoot{margin-top:6px;text-align:center;font-size:11.5px;letter-spacing:.04em;opacity:.6;font-weight:600;}
+  #mapFoot b{color:var(--green)}
+
+  #cross{
+    position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
+    border-radius:50%;background:rgba(255,255,255,.92);
+    box-shadow:0 0 0 1.5px rgba(20,40,70,.45), 0 0 8px rgba(0,0,0,.25);
+  }
+
+  #toast{
+    position:absolute;left:50%;bottom:11%;transform:translate(-50%,10px);
+    background:rgba(23,37,60,.86);color:#fff;border-radius:999px;
+    padding:10px 22px;font-size:15px;font-weight:700;
+    opacity:0;transition:opacity .25s ease, transform .25s ease;white-space:nowrap;
+  }
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  #tip{
+    position:absolute;left:50%;bottom:4.5%;transform:translateX(-50%);
+    font-size:12.5px;font-weight:600;color:rgba(23,37,60,.5);
+    background:rgba(255,255,255,.66);border-radius:999px;padding:5px 14px;
+  }
+
+  /* 拾取卡片 */
+  #card{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);
+    width:270px;background:#fff;border-radius:24px;padding:22px 20px 18px;text-align:center;
+    box-shadow:0 26px 60px rgba(24,48,80,.3);
+    opacity:0;transition:opacity .22s ease, transform .28s cubic-bezier(.2,1.4,.4,1);
+    border-top:7px solid var(--green);
+  }
+  #card.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #card.bad{border-top-color:var(--rose)}
+  #card .g{font-size:96px;line-height:1.05;font-weight:700}
+  #card .py{font-size:24px;font-weight:800;color:var(--green);margin-top:2px}
+  #card.bad .py{color:var(--rose)}
+  #card .en{font-size:16px;opacity:.62;font-weight:600;margin-top:2px}
+  #card .pr{margin-top:12px;font-size:17px;font-weight:800}
+
+  /* ---------------- Overlays ---------------- */
+  .veil{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:20px;z-index:10;overflow:auto;
+    background:radial-gradient(120% 90% at 50% 0%, rgba(190,222,240,.74), rgba(150,190,215,.88));
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  }
+  .veil[hidden]{display:none}
+  .card2{
+    width:min(520px,100%);background:rgba(255,255,255,.95);
+    border:1px solid rgba(255,255,255,.8);border-radius:24px;
+    padding:28px 28px 24px;text-align:center;
+    box-shadow:0 24px 60px rgba(24,48,80,.26);
+    max-height:94vh;overflow:auto;
+  }
+  .card2 h1{margin:0 0 4px;font-size:31px}
+  .card2 h2{margin:0 0 8px;font-size:26px}
+  .sub{margin:0 0 18px;font-size:14px;line-height:1.7;opacity:.66}
+  .grp{margin:0 0 16px;text-align:left}
+  .grp>.t{font-size:11.5px;letter-spacing:.14em;font-weight:800;opacity:.42;margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    appearance:none;cursor:pointer;font:inherit;font-weight:700;font-size:14px;
+    background:#f1f5f9;border:2px solid transparent;color:var(--ink);
+    border-radius:12px;padding:9px 14px;transition:.14s;
+  }
+  .chip:hover{background:#e6edf4}
+  .chip.sel{background:#e4f6ec;border-color:var(--green);color:#14764a}
+  .keys{
+    display:grid;grid-template-columns:auto 1fr;gap:8px 14px;
+    text-align:left;font-size:13px;margin:0 0 20px;
+    padding:14px 16px;background:#f2f6f9;border-radius:14px;
+  }
+  .keys kbd{
+    display:inline-block;min-width:25px;text-align:center;
+    background:#fff;border:1px solid #d3dde6;border-bottom-width:2px;border-radius:6px;
+    padding:2px 7px;font:600 12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .keys span{opacity:.72;align-self:center}
+  .btn{
+    appearance:none;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:16px;
+    color:#fff;background:linear-gradient(180deg,#2fb277,#1f9260);
+    padding:14px 34px;border-radius:999px;
+    box-shadow:0 8px 20px rgba(31,146,96,.34);transition:transform .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:none;color:var(--ink);box-shadow:none;border:1px solid var(--line);margin-left:8px}
+  .btn.ghost:hover{background:#f2f6f9}
+
+  .score{display:flex;justify-content:center;gap:12px;margin:0 0 16px}
+  .score div{flex:1;background:#f2f6f9;border-radius:14px;padding:12px 6px}
+  .score .k{font-size:11px;letter-spacing:.08em;opacity:.5;font-weight:800}
+  .score .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px}
+  #stars{font-size:30px;letter-spacing:6px;margin:0 0 12px;color:var(--gold)}
+  #stars .off{opacity:.16}
+
+  .learned{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 18px}
+  .lc{
+    cursor:pointer;background:#f7fafc;border:1px solid var(--line);border-radius:14px;
+    padding:8px 10px 6px;min-width:70px;transition:.14s;
+  }
+  .lc:hover{background:#eef6f1;transform:translateY(-2px)}
+  .lc .g{font-size:34px;line-height:1.1;font-weight:700}
+  .lc .p{font-size:12.5px;font-weight:700;color:var(--green)}
+  .lc .e{font-size:11px;opacity:.55}
+
+  #quiz{display:none;margin:4px 0 18px;padding:16px;background:#f5f9fc;border-radius:16px}
+  #quiz.on{display:block}
+  #qz-q{font-size:18px;font-weight:700;margin-bottom:12px}
+  #qz-q .big{font-size:30px;vertical-align:-4px}
+  #qz-opts{display:flex;gap:10px;justify-content:center}
+  .qo{
+    cursor:pointer;font:inherit;font-weight:700;background:#fff;border:2px solid var(--line);
+    border-radius:16px;width:74px;height:74px;font-size:38px;transition:.14s;
+  }
+  .qo:hover{border-color:var(--green)}
+  .qo.ok{background:#dff5e8;border-color:var(--green)}
+  .qo.no{background:#fde8e4;border-color:var(--rose)}
+  #qz-note{margin-top:10px;font-size:13.5px;font-weight:700;min-height:20px}
+
+  #nogl{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:30px;text-align:center;z-index:20;background:#cfe3ef}
+
+  #stick{position:fixed;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.65);background:rgba(255,255,255,.16);display:none;z-index:5;pointer-events:none}
+  #stick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
+    background:rgba(255,255,255,.72);box-shadow:0 3px 10px rgba(0,0,0,.2)}
+
+  @media (max-width:680px){
+    #map{width:118px;height:118px}
+    #quest{gap:9px;padding:8px 12px}
+    #quest .emo{font-size:26px} #quest .en{font-size:15px}
+    #quest .hint{width:38px;height:38px;font-size:24px}
+    .card2{padding:22px 18px 20px}
+  }
+</style>
+
+<canvas id="gl"></canvas>
+<canvas id="fx"></canvas>
+
+<div id="hud">
+  <div id="statBar">
+    <div class="pill"><span>⏱</span><span id="time">00:00.0</span></div>
+  </div>
+
+  <div id="quest">
+    <div class="lab">找一找</div>
+    <div class="emo" id="qEmo">💧</div>
+    <div>
+      <div class="en" id="qEn">water</div>
+      <div class="py" id="qPy">shuǐ</div>
+    </div>
+    <div class="hint hanzi" id="qHint">?</div>
+    <div class="prog" id="qProg">0 / 6</div>
+  </div>
+
+  <div id="mapWrap">
+    <canvas id="map" width="352" height="352"></canvas>
+    <div id="mapFoot">已探索 <b id="pct">0%</b></div>
+  </div>
+
+  <div id="cross"></div>
+  <div id="card"><div class="g hanzi" id="cg">水</div><div class="py" id="cp">shuǐ</div><div class="en" id="ce">💧 water</div><div class="pr" id="cr">太棒了！</div></div>
+  <div id="toast"></div>
+  <div id="tip">按 <b>H</b> 看提示 · <b>Esc</b> 暂停</div>
+</div>
+
+<div id="stick"><i></i></div>
+
+<div class="veil" id="startVeil">
+  <div class="card2">
+    <h1>汉字迷宫</h1>
+    <p class="sub">在彩色迷宫里找到会发光的汉字石板，<br>听读音、认字形，集齐之后大门就会打开。</p>
+
+    <div class="grp">
+      <div class="t">选一组字</div>
+      <div class="chips" id="deckChips"></div>
+    </div>
+    <div class="grp">
+      <div class="t">迷宫大小</div>
+      <div class="chips" id="sizeChips"></div>
+    </div>
+
+    <div class="keys" id="keyHelp"></div>
+    <button class="btn" id="startBtn">开始探索</button>
+  </div>
+</div>
+
+<div class="veil" id="pauseVeil" hidden>
+  <div class="card2">
+    <h2>休息一下</h2>
+    <p class="sub">计时已经停下，随时可以继续。</p>
+    <button class="btn" id="resumeBtn">继续</button>
+    <button class="btn ghost" id="quitBtn">换一组字</button>
+  </div>
+</div>
+
+<div class="veil" id="winVeil" hidden>
+  <div class="card2">
+    <h2 id="winTitle">闯出去啦！</h2>
+    <div id="stars"></div>
+    <div class="score">
+      <div><div class="k">用时</div><div class="v" id="winTime">--</div></div>
+      <div><div class="k">学会</div><div class="v" id="winChars">--</div></div>
+      <div><div class="k">探索</div><div class="v" id="winPct">--</div></div>
+    </div>
+    <div class="grp"><div class="t">今天认识的字 · 点一点听读音</div></div>
+    <div class="learned" id="learned"></div>
+    <div id="quiz">
+      <div id="qz-q"></div>
+      <div id="qz-opts"></div>
+      <div id="qz-note"></div>
+    </div>
+    <button class="btn" id="quizBtn">来个小测验</button>
+    <button class="btn ghost" id="againBtn">再来一局</button>
+  </div>
+</div>
+
+<div id="nogl"><div><h2>需要 WebGL</h2><p class="sub">当前浏览器未启用 WebGL，换一个现代浏览器试试。</p></div></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =====================================================================
+   0. 字库
+   ===================================================================== */
+const DECKS = {
+  number: { name: '数字 1-10', icon: '🔢', chars: [
+    { c:'一', p:'yī',   e:'one',   emo:'1️⃣' }, { c:'二', p:'èr',   e:'two',   emo:'2️⃣' },
+    { c:'三', p:'sān',  e:'three', emo:'3️⃣' }, { c:'四', p:'sì',   e:'four',  emo:'4️⃣' },
+    { c:'五', p:'wǔ',   e:'five',  emo:'5️⃣' }, { c:'六', p:'liù',  e:'six',   emo:'6️⃣' },
+    { c:'七', p:'qī',   e:'seven', emo:'7️⃣' }, { c:'八', p:'bā',   e:'eight', emo:'8️⃣' },
+    { c:'九', p:'jiǔ',  e:'nine',  emo:'9️⃣' }, { c:'十', p:'shí',  e:'ten',   emo:'🔟' }
+  ]},
+  nature: { name: '大自然', icon: '🌿', chars: [
+    { c:'日', p:'rì',   e:'sun',      emo:'☀️' }, { c:'月', p:'yuè', e:'moon',  emo:'🌙' },
+    { c:'山', p:'shān', e:'mountain', emo:'⛰️' }, { c:'水', p:'shuǐ',e:'water', emo:'💧' },
+    { c:'火', p:'huǒ',  e:'fire',     emo:'🔥' }, { c:'木', p:'mù',  e:'tree',  emo:'🌳' },
+    { c:'土', p:'tǔ',   e:'soil',     emo:'🟫' }, { c:'雨', p:'yǔ',  e:'rain',  emo:'🌧️' },
+    { c:'天', p:'tiān', e:'sky',      emo:'🌈' }, { c:'石', p:'shí', e:'stone', emo:'🪨' }
+  ]},
+  animal: { name: '小动物', icon: '🐾', chars: [
+    { c:'马', p:'mǎ',   e:'horse', emo:'🐴' }, { c:'牛', p:'niú',  e:'ox',       emo:'🐮' },
+    { c:'羊', p:'yáng', e:'sheep', emo:'🐑' }, { c:'鸟', p:'niǎo', e:'bird',     emo:'🐦' },
+    { c:'鱼', p:'yú',   e:'fish',  emo:'🐟' }, { c:'猫', p:'māo',  e:'cat',      emo:'🐱' },
+    { c:'狗', p:'gǒu',  e:'dog',   emo:'🐶' }, { c:'虫', p:'chóng',e:'bug',      emo:'🐛' },
+    { c:'兔', p:'tù',   e:'rabbit',emo:'🐰' }, { c:'象', p:'xiàng',e:'elephant', emo:'🐘' }
+  ]},
+  body: { name: '人和身体', icon: '🖐', chars: [
+    { c:'人', p:'rén',  e:'person',   emo:'🧍' }, { c:'口', p:'kǒu', e:'mouth',    emo:'👄' },
+    { c:'目', p:'mù',   e:'eye',      emo:'👁️' }, { c:'手', p:'shǒu',e:'hand',     emo:'✋' },
+    { c:'心', p:'xīn',  e:'heart',    emo:'❤️' }, { c:'耳', p:'ěr',  e:'ear',      emo:'👂' },
+    { c:'足', p:'zú',   e:'foot',     emo:'🦶' }, { c:'力', p:'lì',  e:'strength', emo:'💪' },
+    { c:'女', p:'nǚ',   e:'girl',     emo:'👧' }, { c:'子', p:'zǐ',  e:'child',    emo:'🧒' }
+  ]},
+  where: { name: '方位和大小', icon: '🧭', chars: [
+    { c:'上', p:'shàng',e:'up',     emo:'⬆️' }, { c:'下', p:'xià',  e:'down',   emo:'⬇️' },
+    { c:'中', p:'zhōng',e:'middle', emo:'🎯' }, { c:'大', p:'dà',   e:'big',    emo:'🐘' },
+    { c:'小', p:'xiǎo', e:'small',  emo:'🐭' }, { c:'左', p:'zuǒ',  e:'left',   emo:'⬅️' },
+    { c:'右', p:'yòu',  e:'right',  emo:'➡️' }, { c:'门', p:'mén',  e:'door',   emo:'🚪' },
+    { c:'出', p:'chū',  e:'go out', emo:'🏃' }, { c:'入', p:'rù',   e:'enter',  emo:'📥' }
+  ]}
+};
+const SIZES = {
+  small:  { name:'小 · 好走', cells: 9,  n: 5 },
+  medium: { name:'中 · 刚好', cells: 12, n: 6 },
+  large:  { name:'大 · 挑战', cells: 16, n: 8 }
+};
+const PRAISE = ['太棒了！', '好厉害！', '你真行！', '认对啦！', '一次就中！', '真聪明！'];
+
+/* =====================================================================
+   1. 常量与小工具
+   ===================================================================== */
+let CELLS = 12, GW = CELLS * 2 + 1;
+const CS = 4.0, WH = 3.6, EYE = 1.68, RAD = 0.86;
+const WALK = 5.4, RUN = 8.4, ACCEL = 42, FRICTION = 12;
+
+function m4()     { return new Float32Array(16); }
+function ident(o) { o.set([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); return o; }
+const _mt = m4();
+function mul(o, a, b) {
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++)
+    _mt[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+  o.set(_mt); return o;
+}
+function persp(o, fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2);
+  o.fill(0);
+  o[0] = f / aspect; o[5] = f;
+  o[10] = (far + near) / (near - far); o[11] = -1;
+  o[14] = 2 * far * near / (near - far);
+  return o;
+}
+function compose(o, tx, ty, tz, ry, rx, sx, sy, sz) {   // T * Ry * Rx * S
+  const ca = Math.cos(ry), sa = Math.sin(ry), cb = Math.cos(rx), sb = Math.sin(rx);
+  o[0] = ca*sx;     o[1] = 0;       o[2]  = -sa*sx;    o[3]  = 0;
+  o[4] = sa*sb*sy;  o[5] = cb*sy;   o[6]  = ca*sb*sy;  o[7]  = 0;
+  o[8] = sa*cb*sz;  o[9] = -sb*sz;  o[10] = ca*cb*sz;  o[11] = 0;
+  o[12] = tx;       o[13] = ty;     o[14] = tz;        o[15] = 1;
+  return o;
+}
+function transOf(o, x, y, z) { ident(o); o[12] = x; o[13] = y; o[14] = z; return o; }
+
+function hsl(h, s, l) {
+  h = h - Math.floor(h);
+  const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h * 12) % 12; return l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1))); };
+  return [f(0), f(8), f(4)];
+}
+function hash2(x, y) { const n = Math.sin(x * 127.1 + y * 311.7) * 43758.545; return n - Math.floor(n); }
+function css(c, m) { m = m || 1; return 'rgb(' + ((c[0]*m*255)|0) + ',' + ((c[1]*m*255)|0) + ',' + ((c[2]*m*255)|0) + ')'; }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+/* =====================================================================
+   2. WebGL
+   ===================================================================== */
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+if (!gl) { document.getElementById('nogl').style.display = 'flex'; document.getElementById('startVeil').hidden = true; return; }
+
+const VS_MAIN = `
+attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aColor;
+uniform mat4 uProj, uView, uModel;
+varying vec3 vColor, vNormal, vWorld;
+void main(){
+  vec4 w = uModel * vec4(aPos, 1.0);
+  vWorld = w.xyz; vNormal = vec3(uModel * vec4(aNormal, 0.0)); vColor = aColor;
+  gl_Position = uProj * uView * w;
+}`;
+const FS_MAIN = `
+precision mediump float;
+varying vec3 vColor, vNormal, vWorld;
+uniform vec3  uLightDir, uCamPos, uFogColor, uTint;
+uniform float uFogNear, uFogFar, uEmissive, uAlpha;
+void main(){
+  vec3  n    = normalize(vNormal);
+  vec3  base = vColor * uTint;
+  float diff = max(dot(n, uLightDir), 0.0);
+  float hemi = 0.5 + 0.5 * n.y;
+  vec3  lit  = base * (0.58 + 0.18 * hemi + 0.40 * diff);
+  float d    = distance(vWorld, uCamPos);
+  float lamp = 1.0 - clamp(d / 15.0, 0.0, 1.0);
+  lit += base * lamp * lamp * 0.20;
+  lit  = mix(lit, base * 1.18, uEmissive);
+  float fog = clamp((d - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+  gl_FragColor = vec4(mix(lit, uFogColor, fog * 0.88), uAlpha);
+}`;
+
+const VS_TEX = `
+attribute vec3 aPos; attribute vec2 aUV;
+uniform mat4 uProj, uView, uModel;
+varying vec2 vUV; varying vec3 vWorld;
+void main(){
+  vec4 w = uModel * vec4(aPos, 1.0);
+  vWorld = w.xyz; vUV = aUV;
+  gl_Position = uProj * uView * w;
+}`;
+const FS_TEX = `
+precision mediump float;
+varying vec2 vUV; varying vec3 vWorld;
+uniform sampler2D uTex;
+uniform vec2  uUVOff;
+uniform float uUVScale, uAlpha, uFogNear, uFogFar;
+uniform vec3  uCamPos;
+void main(){
+  vec4 t = texture2D(uTex, uUVOff + vUV * uUVScale);
+  float d = distance(vWorld, uCamPos);
+  float fade = 1.0 - clamp((d - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+  gl_FragColor = t * uAlpha * fade;
+}`;
+
+const VS_SKY = `attribute vec2 aXY; varying float vY;
+void main(){ vY = aXY.y * 0.5 + 0.5; gl_Position = vec4(aXY, 0.0, 1.0); }`;
+const FS_SKY = `precision mediump float; varying float vY; uniform vec3 uTop, uBot;
+void main(){ gl_FragColor = vec4(mix(uBot, uTop, pow(vY, 0.85)), 1.0); }`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function link(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+const P_MAIN = link(VS_MAIN, FS_MAIN), P_TEX = link(VS_TEX, FS_TEX), P_SKY = link(VS_SKY, FS_SKY);
+
+const A = {
+  pos:  gl.getAttribLocation(P_MAIN, 'aPos'),
+  nrm:  gl.getAttribLocation(P_MAIN, 'aNormal'),
+  col:  gl.getAttribLocation(P_MAIN, 'aColor'),
+  tpos: gl.getAttribLocation(P_TEX, 'aPos'),
+  tuv:  gl.getAttribLocation(P_TEX, 'aUV'),
+  sky:  gl.getAttribLocation(P_SKY, 'aXY')
+};
+const U = {}, UT = {}, US = {};
+['uProj','uView','uModel','uLightDir','uCamPos','uFogColor','uTint','uFogNear','uFogFar','uEmissive','uAlpha']
+  .forEach(k => U[k] = gl.getUniformLocation(P_MAIN, k));
+['uProj','uView','uModel','uTex','uUVOff','uUVScale','uAlpha','uFogNear','uFogFar','uCamPos']
+  .forEach(k => UT[k] = gl.getUniformLocation(P_TEX, k));
+US.top = gl.getUniformLocation(P_SKY, 'uTop'); US.bot = gl.getUniformLocation(P_SKY, 'uBot');
+
+function setAttribs(list) {
+  for (let i = 0; i < 5; i++) gl.disableVertexAttribArray(i);
+  for (const l of list) if (l >= 0) gl.enableVertexAttribArray(l);
+}
+function buffer(arr) {
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+  return b;
+}
+const skyBuf = buffer(new Float32Array([-1,-1, 3,-1, -1,3]));
+
+/* =====================================================================
+   3. 几何
+   ===================================================================== */
+function B() { return { p: [], n: [], c: [] }; }
+function tri(b, a1, a2, a3, col) {
+  const ux = a2[0]-a1[0], uy = a2[1]-a1[1], uz = a2[2]-a1[2];
+  const vx = a3[0]-a1[0], vy = a3[1]-a1[1], vz = a3[2]-a1[2];
+  let nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+  const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+  b.p.push(a1[0],a1[1],a1[2], a2[0],a2[1],a2[2], a3[0],a3[1],a3[2]);
+  for (let i = 0; i < 3; i++) { b.n.push(nx, ny, nz); b.c.push(col[0], col[1], col[2]); }
+}
+function quad(b, a1, a2, a3, a4, col) { tri(b, a1, a2, a3, col); tri(b, a1, a3, a4, col); }
+function shade(c, k) { return [c[0]*k, c[1]*k, c[2]*k]; }
+
+const FACE_TINT = { px:.94, nx:.90, py:1.14, ny:.72, pz:1.02, nz:.86 };
+function addBox(b, cx, cy, cz, hx, hy, hz, col, ry, skip) {
+  const c = Math.cos(ry || 0), s = Math.sin(ry || 0);
+  const V = (sx, sy, sz) => {
+    const x = sx*hx, y = sy*hy, z = sz*hz;
+    return [cx + x*c + z*s, cy + y, cz - x*s + z*c];
+  };
+  skip = skip || {};
+  if (!skip.px) quad(b, V(1,-1,1), V(1,-1,-1), V(1,1,-1), V(1,1,1), shade(col, FACE_TINT.px));
+  if (!skip.nx) quad(b, V(-1,-1,-1), V(-1,-1,1), V(-1,1,1), V(-1,1,-1), shade(col, FACE_TINT.nx));
+  if (!skip.py) quad(b, V(-1,1,1), V(1,1,1), V(1,1,-1), V(-1,1,-1), shade(col, FACE_TINT.py));
+  if (!skip.ny) quad(b, V(-1,-1,-1), V(1,-1,-1), V(1,-1,1), V(-1,-1,1), shade(col, FACE_TINT.ny));
+  if (!skip.pz) quad(b, V(-1,-1,1), V(1,-1,1), V(1,1,1), V(-1,1,1), shade(col, FACE_TINT.pz));
+  if (!skip.nz) quad(b, V(1,-1,-1), V(-1,-1,-1), V(-1,1,-1), V(1,1,-1), shade(col, FACE_TINT.nz));
+}
+function addPrism(b, cx, cy, cz, r, h, N, rot, col) {
+  const pt = (i, y) => {
+    const a = rot + i / N * Math.PI * 2;
+    return [cx + Math.cos(a) * r, cy + y, cz + Math.sin(a) * r];
+  };
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    quad(b, pt(i, h), pt(j, h), pt(j, 0), pt(i, 0), shade(col, 0.9 + 0.16 * hash2(i, 7)));
+    tri(b, [cx, cy + h, cz], pt(j, h), pt(i, h), shade(col, 1.14));
+    tri(b, [cx, cy, cz], pt(i, 0), pt(j, 0), shade(col, 0.7));
+  }
+}
+function makeMesh(b) {
+  return { count: b.p.length / 3, pos: buffer(new Float32Array(b.p)),
+           nrm: buffer(new Float32Array(b.n)), col: buffer(new Float32Array(b.c)) };
+}
+function freeMesh(m) { if (m) { gl.deleteBuffer(m.pos); gl.deleteBuffer(m.nrm); gl.deleteBuffer(m.col); } }
+
+const _model = m4();
+function drawMesh(mesh, model, tint, emissive, alpha) {
+  gl.uniformMatrix4fv(U.uModel, false, model);
+  gl.uniform3fv(U.uTint, tint); gl.uniform1f(U.uEmissive, emissive); gl.uniform1f(U.uAlpha, alpha);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos); gl.vertexAttribPointer(A.pos, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.nrm); gl.vertexAttribPointer(A.nrm, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.col); gl.vertexAttribPointer(A.col, 3, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+}
+
+/* 汉字贴片：双面，UV 用 0..1，图集偏移由 uniform 给 */
+const glyphQuad = (function () {
+  const R = 0.70, Z = 0.11, p = [], uv = [];
+  const push = (v, t) => { for (let i = 0; i < 3; i++) { p.push(v[i][0], v[i][1], v[i][2]); uv.push(t[i][0], t[i][1]); } };
+  const T = [[0,1],[1,1],[1,0],[0,0]];
+  const F = [[-R,-R,Z],[R,-R,Z],[R,R,Z],[-R,R,Z]];        // 正面
+  push([F[0],F[1],F[2]], [T[0],T[1],T[2]]); push([F[0],F[2],F[3]], [T[0],T[2],T[3]]);
+  const K = [[R,-R,-Z],[-R,-R,-Z],[-R,R,-Z],[R,R,-Z]];    // 背面（镜像，转过来也读得正）
+  push([K[0],K[1],K[2]], [T[0],T[1],T[2]]); push([K[0],K[2],K[3]], [T[0],T[2],T[3]]);
+  return { count: p.length / 3, pos: buffer(new Float32Array(p)), uv: buffer(new Float32Array(uv)) };
+})();
+
+const plaqueMesh = (function () {
+  const b = B();
+  addBox(b, 0, 0, 0, 0.86, 0.86, 0.10, [0.99, 0.96, 0.88]);
+  addBox(b, 0, -1.05, 0, 0.16, 0.22, 0.16, [0.78, 0.84, 0.90]);
+  return makeMesh(b);
+})();
+const ringMesh = (function () {
+  const b = B(), N = 8, R = 1.15;
+  for (let i = 0; i < N; i++) {
+    const a = i / N * Math.PI * 2;
+    addBox(b, Math.cos(a) * R, 0, Math.sin(a) * R, 0.46, 0.11, 0.11, [0.98, 1.0, 0.9], -a - Math.PI / 2);
+  }
+  return makeMesh(b);
+})();
+const shadowMesh = (function () {
+  const b = B(); addPrism(b, 0, 0, 0, 0.55, 0.02, 8, 0, [0.05, 0.08, 0.06]); return makeMesh(b);
+})();
+
+/* =====================================================================
+   4. 汉字图集贴图
+   ===================================================================== */
+const ATLAS_N = 4, ATLAS_CELL = 256;
+let glyphTex = null;
+function buildAtlas(list) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = ATLAS_N * ATLAS_CELL;
+  const c = cv.getContext('2d');
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = '700 178px "KaiTi","STKaiti","Kaiti SC","Songti SC","SimSun","Microsoft YaHei","PingFang SC",serif';
+  list.forEach((it, i) => {
+    const x = (i % ATLAS_N) * ATLAS_CELL + ATLAS_CELL / 2;
+    const y = ((i / ATLAS_N) | 0) * ATLAS_CELL + ATLAS_CELL / 2;
+    c.fillStyle = 'rgba(28,45,70,0.14)';                  // 轻微阴影，远看更清楚
+    c.fillText(it.c, x + 4, y + 9);
+    c.fillStyle = '#16283f';
+    c.fillText(it.c, x, y + 5);
+  });
+  if (glyphTex) gl.deleteTexture(glyphTex);
+  glyphTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, glyphTex);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+/* =====================================================================
+   5. 迷宫
+   ===================================================================== */
+let grid, explored, openTotal, exploredOpen, distField;
+let startCell, exitCell, tiles = [], tileHue;
+let mapFloorCol = [], mapWallCol = [];
+let meshWorld = null, meshExit = null, meshBeacon = null;
+
+const idx = (x, z) => z * GW + x;
+const solidAt = (x, z) => (x < 0 || z < 0 || x >= GW || z >= GW) ? true : grid[idx(x, z)] === 1;
+
+function buildMaze(nTiles) {
+  GW = CELLS * 2 + 1;
+  grid = new Uint8Array(GW * GW).fill(1);
+
+  const seen = new Uint8Array(CELLS * CELLS), stack = [[0, 0]];
+  seen[0] = 1; grid[idx(1, 1)] = 0;
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+  while (stack.length) {
+    const cur = stack[stack.length - 1], nb = [];
+    for (const d of DIRS) {
+      const nx = cur[0] + d[0], ny = cur[1] + d[1];
+      if (nx < 0 || ny < 0 || nx >= CELLS || ny >= CELLS || seen[ny * CELLS + nx]) continue;
+      nb.push([nx, ny, d[0], d[1]]);
+    }
+    if (!nb.length) { stack.pop(); continue; }
+    const k = nb[(Math.random() * nb.length) | 0];
+    seen[k[1] * CELLS + k[0]] = 1;
+    grid[idx(2 * k[0] + 1, 2 * k[1] + 1)] = 0;
+    grid[idx(2 * cur[0] + 1 + k[2], 2 * cur[1] + 1 + k[3])] = 0;
+    stack.push([k[0], k[1]]);
+  }
+  for (let z = 1; z < GW - 1; z++) for (let x = 1; x < GW - 1; x++) {
+    if (grid[idx(x, z)] !== 1) continue;
+    if ((x % 2 === 1) === (z % 2 === 1)) continue;
+    if (Math.random() < 0.085) grid[idx(x, z)] = 0;       // 少量环路，走起来不死板
+  }
+
+  distField = new Int32Array(GW * GW).fill(-1);
+  startCell = [1, 1]; distField[idx(1, 1)] = 0;
+  const q = [[1, 1]];
+  for (let h = 0; h < q.length; h++) {
+    const x = q[h][0], z = q[h][1], d = distField[idx(x, z)];
+    for (const dd of DIRS) {
+      const nx = x + dd[0], nz = z + dd[1];
+      if (nx < 0 || nz < 0 || nx >= GW || nz >= GW) continue;
+      if (grid[idx(nx, nz)] === 1 || distField[idx(nx, nz)] >= 0) continue;
+      distField[idx(nx, nz)] = d + 1; q.push([nx, nz]);
+    }
+  }
+  let best = -1;
+  for (let z = 1; z < GW; z += 2) for (let x = 1; x < GW; x += 2)
+    if (distField[idx(x, z)] > best) { best = distField[idx(x, z)]; exitCell = [x, z]; }
+
+  const cands = [];
+  for (let z = 1; z < GW; z += 2) for (let x = 1; x < GW; x += 2) {
+    if (distField[idx(x, z)] < 3) continue;
+    if (x === exitCell[0] && z === exitCell[1]) continue;
+    cands.push([x, z, Math.random()]);
+  }
+  cands.sort((a, b) => a[2] - b[2]);
+  const spots = [], minGap = CELLS >= 14 ? 6 : 4;
+  for (const c of cands) {
+    if (spots.length >= nTiles) break;
+    let ok = true;
+    for (const s of spots) if (Math.abs(s[0] - c[0]) + Math.abs(s[1] - c[1]) < minGap) { ok = false; break; }
+    if (ok) spots.push([c[0], c[1]]);
+  }
+  for (const c of cands) {                                 // 迷宫太小时放宽间距补齐
+    if (spots.length >= nTiles) break;
+    if (!spots.some(s => s[0] === c[0] && s[1] === c[1])) spots.push([c[0], c[1]]);
+  }
+
+  tileHue = new Float32Array(GW * GW);
+  openTotal = 0;
+  for (let z = 0; z < GW; z++) for (let x = 0; x < GW; x++) {
+    tileHue[idx(x, z)] = 0.02 + 0.84 * (0.62 * (x / (GW - 1)) + 0.38 * (z / (GW - 1)));
+    if (grid[idx(x, z)] === 0) openTotal++;
+  }
+  explored = new Uint8Array(GW * GW);
+  exploredOpen = 0;
+  return spots;
+}
+
+function buildWorldMesh() {
+  freeMesh(meshWorld); freeMesh(meshExit); freeMesh(meshBeacon);
+  const b = B(), hcs = CS / 2;
+  mapFloorCol = new Array(GW * GW); mapWallCol = new Array(GW * GW);
+
+  for (let z = 0; z < GW; z++) for (let x = 0; x < GW; x++) {
+    const h = tileHue[idx(x, z)], jit = (hash2(x, z) - 0.5) * 0.055;
+    const wx = x * CS, wz = z * CS;
+    const fCol = hsl(h, 0.26, 0.58 + jit);
+    quad(b, [wx-hcs,0,wz+hcs], [wx+hcs,0,wz+hcs], [wx+hcs,0,wz-hcs], [wx-hcs,0,wz-hcs], fCol);
+    mapFloorCol[idx(x, z)] = css(fCol, 1.16);
+
+    if (grid[idx(x, z)] === 1) {
+      const wCol = hsl(h, 0.44, 0.71 + jit);
+      mapWallCol[idx(x, z)] = css(wCol, 0.52);
+      addBox(b, wx, WH / 2, wz, hcs, WH / 2, hcs, wCol, 0, {
+        px: solidAt(x+1, z), nx: solidAt(x-1, z),
+        pz: solidAt(x, z+1), nz: solidAt(x, z-1), ny: true
+      });
+    }
+  }
+  meshWorld = makeMesh(b);
+
+  const ex = exitCell[0] * CS, ez = exitCell[1] * CS, e = B();
+  addPrism(e, ex, 0.02, ez, 1.72, 0.16, 8, Math.PI / 8, [1, 1, 1]);
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + i * Math.PI / 2;
+    addBox(e, ex + Math.cos(a) * 1.35, 1.15, ez + Math.sin(a) * 1.35, 0.17, 1.15, 0.17, [0.95, 0.99, 0.96]);
+  }
+  meshExit = makeMesh(e);
+
+  const bb = B();
+  addPrism(bb, ex, 0.1, ez, 0.85, 26, 6, 0, [1, 1, 1]);
+  meshBeacon = makeMesh(bb);
+}
+
+/* =====================================================================
+   6. 状态
+   ===================================================================== */
+const player = { x: CS, z: CS, vx: 0, vz: 0, yaw: 0, pitch: 0, bob: 0 };
+const keys = Object.create(null);
+let mode = 'title';                       // title | play | pause | win
+let deckKey = 'nature', sizeKey = 'medium';
+let elapsed = 0, found = 0, wrong = 0, targetIdx = 0, hintTimer = 0, idleTimer = 0;
+let trail = [], toastTimer = 0, cardTimer = 0, lastCell = -1, stepPhase = 0;
+let touchMode = false, moveTouch = null, lookTouch = null, tAxis = { x: 0, y: 0 };
+let dragging = false, lockHinted = false;
+
+/* =====================================================================
+   7. 输入
+   ===================================================================== */
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Escape' && mode === 'play') releaseLook();
+  if (e.code === 'KeyH' && mode === 'play') useHint();
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+canvas.addEventListener('mousedown', () => {
+  if (mode !== 'play' || document.pointerLockElement === canvas) return;
+  dragging = true;                                         // 指针锁定不可用时的退路
+  grabLook();
+});
+addEventListener('mouseup', () => { dragging = false; });
+document.addEventListener('mousemove', e => {
+  if (mode !== 'play') return;
+  if (document.pointerLockElement !== canvas && !dragging) return;
+  player.yaw   -= (e.movementX || 0) * 0.0022;
+  player.pitch -= (e.movementY || 0) * 0.0022;
+  player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch));
+});
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement === canvas) {
+    if (mode === 'pause') { mode = 'play'; showVeil(null); }
+  } else if (mode === 'play') { mode = 'pause'; showVeil('pauseVeil'); }
+});
+
+const stick = document.getElementById('stick'), stickKnob = stick.firstElementChild;
+canvas.addEventListener('touchstart', e => {
+  if (mode !== 'play') return;
+  for (const t of e.changedTouches) {
+    if (t.clientX < innerWidth * 0.5 && !moveTouch) {
+      moveTouch = { id: t.identifier, ox: t.clientX, oy: t.clientY };
+      stick.style.display = 'block';
+      stick.style.left = t.clientX + 'px'; stick.style.top = t.clientY + 'px';
+    } else if (!lookTouch) lookTouch = { id: t.identifier, lx: t.clientX, ly: t.clientY };
+  }
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (moveTouch && t.identifier === moveTouch.id) {
+      let dx = (t.clientX - moveTouch.ox) / 52, dy = (t.clientY - moveTouch.oy) / 52;
+      const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+      tAxis.x = dx; tAxis.y = dy;
+      stickKnob.style.transform = 'translate(' + dx * 32 + 'px,' + dy * 32 + 'px)';
+    } else if (lookTouch && t.identifier === lookTouch.id) {
+      player.yaw   -= (t.clientX - lookTouch.lx) * 0.005;
+      player.pitch -= (t.clientY - lookTouch.ly) * 0.005;
+      player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch));
+      lookTouch.lx = t.clientX; lookTouch.ly = t.clientY;
+    }
+  }
+  e.preventDefault();
+}, { passive: false });
+function endTouch(e) {
+  for (const t of e.changedTouches) {
+    if (moveTouch && t.identifier === moveTouch.id) {
+      moveTouch = null; tAxis.x = tAxis.y = 0;
+      stick.style.display = 'none'; stickKnob.style.transform = '';
+    }
+    if (lookTouch && t.identifier === lookTouch.id) lookTouch = null;
+  }
+}
+canvas.addEventListener('touchend', endTouch);
+canvas.addEventListener('touchcancel', endTouch);
+
+function grabLook() {
+  if (touchMode) { mode = 'play'; showVeil(null); return; }
+  const r = canvas.requestPointerLock ? canvas.requestPointerLock() : null;
+  if (r && typeof r.catch === 'function') r.catch(() => {
+    mode = 'play'; showVeil(null);
+    if (!lockHinted) { lockHinted = true; toast('按住鼠标左键拖动可以转视角'); }
+  });
+}
+function releaseLook() {
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
+  else { mode = 'pause'; showVeil('pauseVeil'); }
+}
+
+/* =====================================================================
+   8. 碰撞：圆 vs 网格 AABB，逐格推出 → 自然贴墙滑行
+   ===================================================================== */
+function resolveCollision(p) {
+  let hit = 0;
+  for (let it = 0; it < 3; it++) {
+    let moved = false;
+    const cx = Math.round(p.x / CS), cz = Math.round(p.z / CS);
+    for (let gz = cz - 1; gz <= cz + 1; gz++) for (let gx = cx - 1; gx <= cx + 1; gx++) {
+      if (!solidAt(gx, gz)) continue;
+      const minx = gx*CS - CS/2, maxx = gx*CS + CS/2, minz = gz*CS - CS/2, maxz = gz*CS + CS/2;
+      const nx = Math.max(minx, Math.min(p.x, maxx)), nz = Math.max(minz, Math.min(p.z, maxz));
+      const dx = p.x - nx, dz = p.z - nz, d2 = dx*dx + dz*dz;
+      if (d2 >= RAD * RAD) continue;
+      const d = Math.sqrt(d2);
+      if (d < 1e-5) {
+        const pl = p.x - minx, pr = maxx - p.x, pu = p.z - minz, pd = maxz - p.z;
+        const m = Math.min(pl, pr, pu, pd);
+        if (m === pl) p.x = minx - RAD; else if (m === pr) p.x = maxx + RAD;
+        else if (m === pu) p.z = minz - RAD; else p.z = maxz + RAD;
+      } else { const k = (RAD - d) / d; p.x += dx * k; p.z += dz * k; }
+      moved = true; hit++;
+    }
+    if (!moved) break;
+  }
+  return hit;
+}
+
+/* =====================================================================
+   9. 探索揭示
+   ===================================================================== */
+function markTile(x, z) {
+  const i = idx(x, z);
+  if (!explored[i]) { explored[i] = 1; if (grid[i] === 0) exploredOpen++; }
+  if (grid[i] === 0) {
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, nz = z + dz;
+      if (nx < 0 || nz < 0 || nx >= GW || nz >= GW) continue;
+      if (grid[idx(nx, nz)] === 1) explored[idx(nx, nz)] = 1;
+    }
+  }
+}
+const REVEAL_DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+function revealAround(gx, gz) {
+  markTile(gx, gz);
+  for (const d of REVEAL_DIRS) for (let i = 1; i <= 7; i++) {
+    const x = gx + d[0] * i, z = gz + d[1] * i;
+    if (x < 0 || z < 0 || x >= GW || z >= GW) break;
+    markTile(x, z);
+    if (grid[idx(x, z)] === 1) break;
+  }
+}
+
+/* =====================================================================
+   10. 声音：音效 + 中文朗读
+   ===================================================================== */
+let actx = null;
+function audio() {
+  if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) actx = new C(); }
+  if (actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, dur, vol, type, slide, delay) {
+  const c = audio(); if (!c) return;
+  const t0 = c.currentTime + (delay || 0);
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(freq, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(c.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  right: () => [660, 880, 1320].forEach((f, i) => tone(f, 0.2, 0.11, 'triangle', null, i * 0.07)),
+  wrong: () => { tone(320, 0.16, 0.06, 'sine', 220); tone(240, 0.2, 0.045, 'sine', 180, 0.08); },
+  step:  () => tone(78 + Math.random() * 14, 0.09, 0.03, 'sine', 46),
+  bump:  () => tone(120, 0.07, 0.028, 'sine', 74),
+  open:  () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.3, 0.09, 'triangle', null, i * 0.08)),
+  win:   () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.36, 0.12, 'triangle', null, i * 0.12))
+};
+
+let zhVoice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices() || [];
+  zhVoice = vs.find(v => /^zh/i.test(v.lang)) || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function say(text) {
+  if (!('speechSynthesis' in window) || !zhVoice) return false;   // 没中文语音就不读，免得读错
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = zhVoice; u.lang = zhVoice.lang; u.rate = 0.75; u.pitch = 1.05;
+    speechSynthesis.speak(u);
+    return true;
+  } catch (e) { return false; }
+}
+
+/* =====================================================================
+   11. HUD
+   ===================================================================== */
+const el = id => document.getElementById(id);
+const hud = el('hud'), toastEl = el('toast'), cardEl = el('card');
+const veils = { startVeil: el('startVeil'), pauseVeil: el('pauseVeil'), winVeil: el('winVeil') };
+
+function showVeil(name) {
+  for (const k in veils) veils[k].hidden = (k !== name);
+  hud.classList.toggle('on', name === null || name === 'pauseVeil');
+}
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('on'); toastTimer = 2.2; }
+function fmtTime(t) {
+  const m = Math.floor(t / 60), s = Math.floor(t % 60), d = Math.floor((t * 10) % 10);
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + d;
+}
+function showCard(it, good, praise) {
+  el('cg').textContent = it.c;
+  el('cp').textContent = it.p;
+  el('ce').textContent = it.emo + '  ' + it.e;
+  el('cr').textContent = praise;
+  cardEl.classList.toggle('bad', !good);
+  cardEl.classList.add('on');
+  cardTimer = 2.4;
+}
+
+el('keyHelp').innerHTML =
+  '<div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><span>前后左右走</span>' +
+  '<div><kbd>鼠标</kbd></div><span>转动视角</span>' +
+  '<div><kbd>Shift</kbd></div><span>跑快一点</span>' +
+  '<div><kbd>H</kbd></div><span>提示：这个字长什么样</span>' +
+  '<div><kbd>Esc</kbd></div><span>暂停</span>';
+
+(function buildChips() {
+  const dc = el('deckChips');
+  Object.keys(DECKS).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (k === deckKey ? ' sel' : '');
+    b.textContent = DECKS[k].icon + ' ' + DECKS[k].name;
+    b.onclick = () => { deckKey = k; [].forEach.call(dc.children, c => c.classList.remove('sel')); b.classList.add('sel'); };
+    dc.appendChild(b);
+  });
+  const sc = el('sizeChips');
+  Object.keys(SIZES).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (k === sizeKey ? ' sel' : '');
+    b.textContent = SIZES[k].name;
+    b.onclick = () => { sizeKey = k; [].forEach.call(sc.children, c => c.classList.remove('sel')); b.classList.add('sel'); };
+    sc.appendChild(b);
+  });
+})();
+
+el('startBtn').onclick = () => { audio(); newGame(); grabLook(); };
+el('resumeBtn').onclick = grabLook;
+el('quitBtn').onclick = () => { mode = 'title'; showVeil('startVeil'); };
+el('againBtn').onclick = () => { newGame(); grabLook(); };
+
+if ('ontouchstart' in window && matchMedia('(pointer: coarse)').matches) {
+  touchMode = true;
+  el('keyHelp').innerHTML =
+    '<div><kbd>左半屏</kbd></div><span>拖动 = 走路</span>' +
+    '<div><kbd>右半屏</kbd></div><span>拖动 = 转视角</span>' +
+    '<div><kbd>?</kbd></div><span>点任务卡上的「?」看提示</span>';
+  el('tip').innerHTML = '点「?」看提示';
+  el('qHint').style.pointerEvents = 'auto';
+  el('qHint').onclick = useHint;
+}
+
+/* ---------- 小地图 ---------- */
+const mapCv = el('map'), mctx = mapCv.getContext('2d');
+function drawMap() {
+  const W = mapCv.width, s = W / GW;
+  mctx.clearRect(0, 0, W, W);
+  mctx.fillStyle = '#dde7ee'; mctx.fillRect(0, 0, W, W);
+
+  for (let z = 0; z < GW; z++) for (let x = 0; x < GW; x++) {
+    const i = idx(x, z);
+    if (!explored[i]) continue;
+    mctx.fillStyle = grid[i] === 1 ? mapWallCol[i] : mapFloorCol[i];
+    mctx.fillRect(x * s, z * s, s + 0.6, s + 0.6);
+  }
+  if (trail.length > 1) {
+    mctx.strokeStyle = 'rgba(255,255,255,.72)';
+    mctx.lineWidth = Math.max(1.6, s * 0.28);
+    mctx.lineJoin = mctx.lineCap = 'round';
+    mctx.beginPath();
+    for (let i = 0; i < trail.length; i++) {
+      const px = (trail[i][0] / CS + 0.5) * s, pz = (trail[i][1] / CS + 0.5) * s;
+      i ? mctx.lineTo(px, pz) : mctx.moveTo(px, pz);
+    }
+    mctx.stroke();
+  }
+  for (const t of tiles) {
+    if (t.got || !explored[idx(t.gx, t.gz)]) continue;
+    mctx.fillStyle = '#e29a12';
+    mctx.beginPath(); mctx.arc((t.gx + 0.5) * s, (t.gz + 0.5) * s, s * 0.34, 0, 6.2832); mctx.fill();
+  }
+  if (explored[idx(exitCell[0], exitCell[1])]) {
+    const open = found >= tiles.length;
+    const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 260);
+    mctx.fillStyle = open ? 'rgba(31,190,110,' + pulse.toFixed(2) + ')' : 'rgba(150,160,175,.75)';
+    mctx.fillRect((exitCell[0] + 0.06) * s, (exitCell[1] + 0.06) * s, s * 0.88, s * 0.88);
+  }
+  const px = (player.x / CS + 0.5) * s, pz = (player.z / CS + 0.5) * s;
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw), r = s * 0.62;
+  mctx.fillStyle = '#17253c';
+  mctx.beginPath();
+  mctx.moveTo(px + fx * r, pz + fz * r);
+  mctx.lineTo(px - fx * r * 0.62 - fz * r * 0.58, pz - fz * r * 0.62 + fx * r * 0.58);
+  mctx.lineTo(px - fx * r * 0.62 + fz * r * 0.58, pz - fz * r * 0.62 - fx * r * 0.58);
+  mctx.closePath(); mctx.fill();
+  mctx.strokeStyle = 'rgba(255,255,255,.9)'; mctx.lineWidth = 1.4; mctx.stroke();
+}
+
+/* ---------- 撒花 ---------- */
+const fxCv = el('fx'), fctx = fxCv.getContext('2d');
+let confetti = [];
+const CONF_COL = ['#e29a12','#2fb277','#4aa3e2','#e2604a','#9b6ce2','#f0c419'];
+function burst(n) {
+  const w = innerWidth, h = innerHeight;
+  for (let i = 0; i < n; i++) confetti.push({
+    x: w / 2 + (Math.random() - 0.5) * 160, y: h * 0.45 + (Math.random() - 0.5) * 60,
+    vx: (Math.random() - 0.5) * 520, vy: -160 - Math.random() * 340,
+    r: 4 + Math.random() * 6, a: Math.random() * 6.28, va: (Math.random() - 0.5) * 12,
+    c: CONF_COL[(Math.random() * CONF_COL.length) | 0], life: 1.6
+  });
+}
+function drawFx(dt) {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+  if (fxCv.width !== w || fxCv.height !== h) { fxCv.width = w; fxCv.height = h; }
+  fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  fctx.clearRect(0, 0, innerWidth, innerHeight);
+  if (!confetti.length) return;
+  for (const p of confetti) {
+    p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.a += p.va * dt; p.life -= dt;
+    fctx.save();
+    fctx.translate(p.x, p.y); fctx.rotate(p.a);
+    fctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+    fctx.fillStyle = p.c;
+    fctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 1.6);
+    fctx.restore();
+  }
+  confetti = confetti.filter(p => p.life > 0 && p.y < innerHeight + 40);
+}
+
+/* =====================================================================
+   12. 任务流程
+   ===================================================================== */
+function target() { return tiles[targetIdx] ? tiles[targetIdx].it : null; }
+function refreshQuest() {
+  const it = target();
+  el('qProg').textContent = found + ' / ' + tiles.length;
+  if (!it) {
+    el('qEmo').textContent = '🚪';
+    el('qEn').textContent = 'the gate is open!';
+    el('qPy').textContent = '大门开啦，快出去';
+    el('qHint').textContent = '出';
+    el('qHint').classList.add('show');
+    return;
+  }
+  el('qEmo').textContent = it.emo;
+  el('qEn').textContent = it.e;
+  el('qPy').textContent = it.p;
+  el('qHint').textContent = hintTimer > 0 ? it.c : '?';
+  el('qHint').classList.toggle('show', hintTimer > 0);
+}
+function useHint() {
+  const it = target(); if (!it) return;
+  hintTimer = 4; idleTimer = 0;
+  refreshQuest();
+  say(it.c);
+}
+
+function newGame() {
+  CELLS = SIZES[sizeKey].cells;
+  const pool = shuffle(DECKS[deckKey].chars.slice()).slice(0, SIZES[sizeKey].n);
+  buildAtlas(pool);
+
+  const spots = buildMaze(pool.length);
+  buildWorldMesh();
+
+  tiles = spots.map((s, i) => ({
+    gx: s[0], gz: s[1], x: s[0] * CS, z: s[1] * CS,
+    it: pool[i], slot: i, got: false, anim: 1, near: false,
+    ph: Math.random() * 6.28, shake: 0
+  }));
+  shuffle(tiles);                                          // 任务顺序与摆放顺序无关
+
+  player.x = startCell[0] * CS; player.z = startCell[1] * CS;
+  player.vx = player.vz = 0; player.bob = 0;
+  player.yaw = solidAt(startCell[0] + 1, startCell[1]) ? Math.PI : -Math.PI / 2;
+  player.pitch = 0;
+
+  elapsed = 0; found = 0; wrong = 0; targetIdx = 0; hintTimer = 0; idleTimer = 0;
+  trail = [[player.x, player.z]]; lastCell = -1; confetti = [];
+  cardEl.classList.remove('on');
+  revealAround(startCell[0], startCell[1]);
+  refreshQuest();
+  mode = 'play';
+  showVeil(null);
+  toast('找齐 ' + tiles.length + ' 个汉字，大门就会打开');
+}
+
+function pickUp(t) {
+  const want = target();
+  if (want && t.it.c === want.c) {
+    t.got = true; found++;
+    sfx.right(); burst(46); say(t.it.c);
+    showCard(t.it, true, PRAISE[(Math.random() * PRAISE.length) | 0]);
+    targetIdx++;
+    while (targetIdx < tiles.length && tiles[targetIdx].got) targetIdx++;
+    hintTimer = 0; idleTimer = 0;
+    if (found >= tiles.length) { sfx.open(); toast('大门打开了！跟着绿色光柱走'); }
+    refreshQuest();
+  } else {
+    wrong++;
+    t.shake = 0.5;
+    sfx.wrong(); say(t.it.c);
+    showCard(t.it, false, '这是「' + t.it.c + '」，再找找 ' + (want ? want.emo : ''));
+  }
+}
+
+function win() {
+  mode = 'win';
+  sfx.win();
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
+  cardEl.classList.remove('on');
+
+  el('winTime').textContent = fmtTime(elapsed);
+  el('winChars').textContent = found + ' 个';
+  el('winPct').textContent = Math.round(exploredOpen / openTotal * 100) + '%';
+  const stars = wrong === 0 ? 3 : (wrong <= 2 ? 2 : 1);
+  el('stars').innerHTML = [0,1,2].map(i => '<span class="' + (i < stars ? '' : 'off') + '">★</span>').join('');
+  el('winTitle').textContent = stars === 3 ? '全对！太厉害了！' : '闯出去啦！';
+
+  const box = el('learned');
+  box.innerHTML = '';
+  tiles.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'lc';
+    d.innerHTML = '<div class="g hanzi">' + t.it.c + '</div><div class="p">' + t.it.p +
+                  '</div><div class="e">' + t.it.emo + ' ' + t.it.e + '</div>';
+    d.onclick = () => say(t.it.c);
+    box.appendChild(d);
+  });
+
+  el('quiz').classList.remove('on');
+  el('quizBtn').style.display = tiles.length >= 3 ? '' : 'none';
+  showVeil('winVeil');
+}
+
+/* ---------- 出口小测验 ---------- */
+const qz = { list: [], i: 0, score: 0 };
+el('quizBtn').onclick = () => {
+  qz.list = shuffle(tiles.map(t => t.it).slice()).slice(0, 3);
+  qz.i = 0; qz.score = 0;
+  el('quiz').classList.add('on');
+  el('quizBtn').style.display = 'none';
+  nextQuestion();
+};
+function nextQuestion() {
+  if (qz.i >= qz.list.length) {
+    el('qz-q').innerHTML = '小测验完成：<b>' + qz.score + ' / ' + qz.list.length + '</b> 分';
+    el('qz-opts').innerHTML = '';
+    el('qz-note').textContent = qz.score === qz.list.length ? '全对！你已经记住它们啦 🎉' : '再玩一局巩固一下吧';
+    return;
+  }
+  const it = qz.list[qz.i];
+  const pool = tiles.map(t => t.it).filter(x => x.c !== it.c);
+  const opts = shuffle([it].concat(shuffle(pool).slice(0, 2)));
+  el('qz-q').innerHTML = '哪个是 <span class="big">' + it.emo + '</span> <b>' + it.e + '</b>（' + it.p + '）?';
+  el('qz-note').textContent = '';
+  const box = el('qz-opts');
+  box.innerHTML = '';
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'qo hanzi'; b.textContent = o.c;
+    b.onclick = () => {
+      [].forEach.call(box.children, c => { c.disabled = true; });
+      say(o.c);
+      if (o.c === it.c) {
+        b.classList.add('ok'); qz.score++; sfx.right(); burst(24);
+        el('qz-note').textContent = '答对了！' + it.c + ' = ' + it.p;
+      } else {
+        b.classList.add('no'); sfx.wrong();
+        [].forEach.call(box.children, c => { if (c.textContent === it.c) c.classList.add('ok'); });
+        el('qz-note').textContent = '正确答案是 ' + it.c + '（' + it.p + '）';
+      }
+      qz.i++;
+      setTimeout(nextQuestion, 1600);
+    };
+    box.appendChild(b);
+  });
+}
+
+/* =====================================================================
+   13. 每帧更新
+   ===================================================================== */
+function update(dt) {
+  elapsed += dt;
+  if (hintTimer > 0) { hintTimer -= dt; if (hintTimer <= 0) refreshQuest(); }
+  if (cardTimer > 0) { cardTimer -= dt; if (cardTimer <= 0) cardEl.classList.remove('on'); }
+
+  let fwd = 0, str = 0;
+  if (touchMode) { fwd = -tAxis.y; str = tAxis.x; }
+  else {
+    if (keys.KeyW || keys.ArrowUp)    fwd += 1;
+    if (keys.KeyS || keys.ArrowDown)  fwd -= 1;
+    if (keys.KeyD || keys.ArrowRight) str += 1;
+    if (keys.KeyA || keys.ArrowLeft)  str -= 1;
+  }
+  const len = Math.hypot(fwd, str);
+  if (len > 1) { fwd /= len; str /= len; }
+
+  const sinY = Math.sin(player.yaw), cosY = Math.cos(player.yaw);
+  const dirX = -sinY * fwd + cosY * str;
+  const dirZ = -cosY * fwd - sinY * str;
+  const speed = (keys.ShiftLeft || keys.ShiftRight) ? RUN : WALK;
+
+  player.vx += (dirX * speed - player.vx) * Math.min(1, ACCEL * dt / speed);
+  player.vz += (dirZ * speed - player.vz) * Math.min(1, ACCEL * dt / speed);
+  if (len < 0.01) { const f = Math.max(0, 1 - FRICTION * dt); player.vx *= f; player.vz *= f; }
+
+  const wantX = player.x + player.vx * dt, wantZ = player.z + player.vz * dt;
+  player.x = wantX; player.z = wantZ;
+  if (resolveCollision(player)) {                          // 撞进墙的那部分速度吃掉 → 墙体"实"
+    const dx = player.x - wantX, dz = player.z - wantZ, l = Math.hypot(dx, dz);
+    if (l > 1e-6) {
+      const nx = dx / l, nz = dz / l, vn = player.vx * nx + player.vz * nz;
+      if (vn < 0) { player.vx -= vn * nx; player.vz -= vn * nz; }
+      if (l > 0.02 && Math.hypot(player.vx, player.vz) > 2.5) sfx.bump();
+    }
+  }
+
+  const sp = Math.hypot(player.vx, player.vz);
+  player.bob += sp * dt * 1.9;
+  stepPhase += sp * dt;
+  if (stepPhase > 2.6) { stepPhase = 0; if (sp > 1) sfx.step(); }
+
+  const gx = Math.round(player.x / CS), gz = Math.round(player.z / CS);
+  if (idx(gx, gz) !== lastCell) { lastCell = idx(gx, gz); revealAround(gx, gz); }
+  const tl = trail[trail.length - 1];
+  if (Math.hypot(player.x - tl[0], player.z - tl[1]) > CS * 0.45) {
+    trail.push([player.x, player.z]);
+    if (trail.length > 900) trail.shift();
+  }
+
+  for (const t of tiles) {
+    if (t.shake > 0) t.shake -= dt;
+    if (t.got) { if (t.anim > 0) t.anim = Math.max(0, t.anim - dt * 2.2); t.near = false; continue; }
+    const near = Math.hypot(player.x - t.x, player.z - t.z) < 1.45;
+    if (near && !t.near) pickUp(t);                        // 只在"走进去"那一刻触发
+    t.near = near;
+  }
+
+  idleTimer += dt;
+  if (idleTimer > 30 && target() && hintTimer <= 0) { useHint(); toast('提示：这个字长这样'); }
+
+  if (Math.hypot(player.x - exitCell[0] * CS, player.z - exitCell[1] * CS) < 1.8) {
+    if (found >= tiles.length) win();
+    else if (toastTimer <= 0) { toast('还差 ' + (tiles.length - found) + ' 个字，大门打不开'); sfx.wrong(); }
+  }
+
+  el('time').textContent = fmtTime(elapsed);
+  el('pct').textContent = Math.round(exploredOpen / openTotal * 100) + '%';
+  if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) toastEl.classList.remove('on'); }
+}
+
+/* =====================================================================
+   14. 渲染
+   ===================================================================== */
+const proj = m4(), view = m4(), tmpA = m4(), tmpB = m4();
+const SKY_TOP = [0.50, 0.75, 0.93], SKY_BOT = [0.93, 0.96, 0.92], FOG = [0.83, 0.90, 0.92];
+const FOG_NEAR = 16, FOG_FAR = 95;
+
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+}
+addEventListener('resize', resize);
+
+function render(now) {
+  resize();
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+
+  gl.useProgram(P_SKY);
+  setAttribs([A.sky]);
+  gl.uniform3fv(US.top, SKY_TOP); gl.uniform3fv(US.bot, SKY_BOT);
+  gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf);
+  gl.vertexAttribPointer(A.sky, 2, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
+  gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK);
+
+  const bobY = Math.sin(player.bob * 2) * 0.055;
+  const eyeX = player.x, eyeY = EYE + bobY, eyeZ = player.z;
+  persp(proj, 1.20, canvas.width / canvas.height, 0.08, 200);
+  compose(tmpA, 0, 0, 0, -player.yaw, 0, 1, 1, 1);
+  compose(tmpB, 0, 0, 0, 0, -player.pitch, 1, 1, 1);
+  mul(view, tmpB, tmpA);
+  transOf(tmpA, -eyeX, -eyeY, -eyeZ);
+  mul(view, view, tmpA);
+
+  gl.useProgram(P_MAIN);
+  setAttribs([A.pos, A.nrm, A.col]);
+  gl.uniformMatrix4fv(U.uProj, false, proj);
+  gl.uniformMatrix4fv(U.uView, false, view);
+  gl.uniform3f(U.uLightDir, 0.44, 0.80, 0.41);
+  gl.uniform3f(U.uCamPos, eyeX, eyeY, eyeZ);
+  gl.uniform3fv(U.uFogColor, FOG);
+  gl.uniform1f(U.uFogNear, FOG_NEAR); gl.uniform1f(U.uFogFar, FOG_FAR);
+
+  const ONE = [1, 1, 1];
+  drawMesh(meshWorld, ident(_model), ONE, 0, 1);
+
+  /* 出口：没集齐是灰的，集齐后亮绿 */
+  const opened = found >= tiles.length;
+  const pulse = 0.86 + 0.14 * Math.sin(now / 320);
+  drawMesh(meshExit, ident(_model), opened ? [0.24 * pulse, 0.92, 0.56] : [0.66, 0.68, 0.72], opened ? 0.30 : 0.05, 1);
+  compose(_model, exitCell[0] * CS, 2.5 + Math.sin(now / 700) * 0.18, exitCell[1] * CS, now / 1400, 0, 1, 1, 1);
+  drawMesh(ringMesh, _model, opened ? ONE : [0.80, 0.82, 0.85], opened ? 0.45 : 0.10, 1);
+
+  /* 汉字石板：外框 + 影子 */
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  const vis = [];
+  for (const t of tiles) {
+    if (t.got && t.anim <= 0) continue;
+    const dx = t.x - eyeX, dz = t.z - eyeZ;
+    if (dx * dx + dz * dz > 60 * 60) continue;
+    const time = now / 1000 + t.ph;
+    const a = t.got ? t.anim : 1;
+    const sc = t.got ? 1 + (1 - a) * 1.5 : 1;
+    const y = 1.55 + Math.sin(time * 1.5) * 0.13 + (t.got ? (1 - a) * 1.3 : 0);
+    const wob = t.shake > 0 ? Math.sin(t.shake * 60) * 0.22 : 0;
+    const spin = t.got ? time * 3.0 : time * 0.55;
+    vis.push({ t: t, y: y, sc: sc, a: a, spin: spin, wob: wob });
+
+    compose(_model, t.x, 0.03, t.z, 0, 0, 1, 1, 1);
+    drawMesh(shadowMesh, _model, ONE, 1, 0.15 * a);
+    compose(_model, t.x, y, t.z, spin + wob, 0, sc, sc, sc);
+    drawMesh(plaqueMesh, _model, t.got ? [1, 1, 0.8] : ONE, t.got ? 0.5 : 0.12, a);
+  }
+
+  /* 汉字贴图（预乘 alpha） */
+  if (vis.length) {
+    gl.useProgram(P_TEX);
+    setAttribs([A.tpos, A.tuv]);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.uniformMatrix4fv(UT.uProj, false, proj);
+    gl.uniformMatrix4fv(UT.uView, false, view);
+    gl.uniform3f(UT.uCamPos, eyeX, eyeY, eyeZ);
+    gl.uniform1f(UT.uFogNear, FOG_NEAR); gl.uniform1f(UT.uFogFar, FOG_FAR);
+    gl.uniform1f(UT.uUVScale, 1 / ATLAS_N);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, glyphTex);
+    gl.uniform1i(UT.uTex, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, glyphQuad.pos); gl.vertexAttribPointer(A.tpos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, glyphQuad.uv);  gl.vertexAttribPointer(A.tuv,  2, gl.FLOAT, false, 0, 0);
+    for (const v of vis) {
+      const s = v.t.slot;
+      gl.uniform2f(UT.uUVOff, (s % ATLAS_N) / ATLAS_N, ((s / ATLAS_N) | 0) / ATLAS_N);
+      gl.uniform1f(UT.uAlpha, v.a);
+      compose(_model, v.t.x, v.y, v.t.z, v.spin + v.wob, 0, v.sc, v.sc, v.sc);
+      gl.uniformMatrix4fv(UT.uModel, false, _model);
+      gl.drawArrays(gl.TRIANGLES, 0, glyphQuad.count);
+    }
+    gl.useProgram(P_MAIN);
+    setAttribs([A.pos, A.nrm, A.col]);
+  }
+
+  /* 出口光柱 */
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.depthMask(false);
+  drawMesh(meshBeacon, ident(_model), opened ? [0.42, 1.0, 0.66] : [0.85, 0.86, 0.90],
+           1, (opened ? 0.20 : 0.09) + 0.05 * Math.sin(now / 400));
+  gl.depthMask(true);
+  gl.disable(gl.BLEND);
+}
+
+/* =====================================================================
+   15. 主循环
+   ===================================================================== */
+let prev = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - prev) / 1000);
+  prev = now;
+  if (mode === 'play') update(dt);
+  if (mode === 'title') player.yaw += dt * 0.11;            // 标题页缓慢环视
+  render(now);
+  drawFx(dt);
+  if (mode !== 'title') drawMap();
+  requestAnimationFrame(frame);
+}
+
+/* 标题页背景：先随便造一个迷宫 */
+CELLS = SIZES[sizeKey].cells;
+buildAtlas(DECKS[deckKey].chars.slice(0, 6));
+(function () {
+  const spots = buildMaze(6);
+  buildWorldMesh();
+  tiles = spots.map((s, i) => ({
+    gx: s[0], gz: s[1], x: s[0] * CS, z: s[1] * CS,
+    it: DECKS[deckKey].chars[i], slot: i, got: false, anim: 1, near: true,
+    ph: Math.random() * 6.28, shake: 0
+  }));
+  player.x = startCell[0] * CS; player.z = startCell[1] * CS;
+})();
+resize();
+showVeil('startVeil');
+requestAnimationFrame(frame);
+
+})();
+</script>
+
+</body></html>
