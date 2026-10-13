@@ -4,6 +4,18 @@
 
 A collection of browser games that help young children learn Chinese characters through listening, looking and reading. Static HTML, no build step, no tracking.
 
+[![Android APK](https://github.com/sessunskbklnk-sketch/Baby-learning-Chinese/actions/workflows/android.yml/badge.svg)](https://github.com/sessunskbklnk-sketch/Baby-learning-Chinese/actions/workflows/android.yml)
+
+## 📱 下载安卓 App · Download for Android
+
+**[⬇️ 下载 baby-learning-chinese.apk](https://github.com/sessunskbklnk-sketch/Baby-learning-Chinese/releases/latest/download/baby-learning-chinese.apk)**（所有版本见 [Releases](https://github.com/sessunskbklnk-sketch/Baby-learning-Chinese/releases)）
+
+1. 用安卓手机 / 平板打开上面的链接下载 APK
+2. 打开下载的文件，按提示允许「安装未知来源应用」
+3. 安装后桌面出现「宝宝学汉字」🐸，离线可玩
+
+要求 Android 8.0 及以上。App 使用系统朗读引擎读中文；若没有声音，到 **设置 → 文字转语音** 选择 Google 引擎并下载中文（普通话）语音。
+
 ## 游戏 · Games
 
 | | 游戏 | 玩法 | 适合 | 操作 |
@@ -39,6 +51,10 @@ python3 -m http.server 8000
 # 打开 http://localhost:8000
 ```
 
+### 构建安卓 App
+
+见 [android/README.md](android/README.md)。推送 `v*` 标签（如 `v1.0.0`）后 GitHub Actions 自动构建 APK 并发布到 Releases。
+
 ### 部署到 GitHub Pages
 
 仓库已含 `.nojekyll`。在 GitHub 仓库 **Settings → Pages** 中选择 *Deploy from a branch*，分支选 `main`、目录 `/ (root)`，保存后即可通过 `https://<user>.github.io/Baby-learning-Chinese/` 访问。
@@ -59,6 +75,7 @@ python3 -m http.server 8000
 ```
 .
 ├── index.html               # 游戏大厅
+├── android/                 # 安卓 App（WebView 包装 + 系统 TTS）
 ├── games/
 │   ├── frog-crossing/       # 小青蛙过河
 │   ├── bike-ride/           # 骑车闯关
@@ -68,7 +85,7 @@ python3 -m http.server 8000
     └── learning-design.md   # 教学设计与扩展字库说明
 ```
 
-每个游戏是一个自包含的 `index.html`（HTML + CSS + JS），无外部依赖、无构建步骤。
+每个游戏是一个自包含的 `index.html`（HTML + CSS + JS），无外部依赖、无构建步骤。安卓 App 在构建时把这些网页打包进 APK。
 
 ## 贡献 · Contributing
 
